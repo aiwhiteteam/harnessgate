@@ -38,7 +38,7 @@ Reference implementation: `channels/telegram/src/telegram-adapter.ts` (~90 lines
 ## Development Setup
 
 ```bash
-git clone https://github.com/your-org/harnessgate.git
+git clone https://github.com/aiwhiteteam/harnessgate.git
 cd harnessgate
 pnpm install
 pnpm build
@@ -200,6 +200,9 @@ Same pattern as channels, but in the `providers/` directory implementing the `Pr
 ## Pull Requests
 
 - One feature per PR
+- Max 10 open PRs per author
+- No refactor-only PRs unless a maintainer asks
 - Include a description of what changed and why
-- Ensure `pnpm build` passes
+- Run `pnpm build && pnpm test` locally before submitting
+- Include screenshots (before/after) for UI or channel changes
 - Add tests for new functionality
