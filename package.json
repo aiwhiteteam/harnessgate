@@ -1,0 +1,25 @@
+{
+  "name": "harnessgate",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Universal gateway connecting AI agent harness runtimes to messaging platforms",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm -r --parallel dev",
+    "lint": "tsc --noEmit",
+    "clean": "pnpm -r clean",
+    "start": "node packages/cli/dist/index.js start",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.4"
+  }
+}

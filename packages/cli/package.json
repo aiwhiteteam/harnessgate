@@ -1,0 +1,35 @@
+{
+  "name": "@harnessgate/cli",
+  "version": "0.1.0",
+  "description": "CLI for HarnessGate",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "harnessgate": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@harnessgate/core": "workspace:*",
+    "@harnessgate/provider-claude": "workspace:*",
+    "@harnessgate/provider-http": "workspace:*",
+    "@harnessgate/channel-web": "workspace:*",
+    "@harnessgate/channel-telegram": "workspace:*",
+    "@harnessgate/channel-discord": "workspace:*",
+    "@harnessgate/channel-slack": "workspace:*",
+    "@harnessgate/channel-whatsapp": "workspace:*",
+    "@harnessgate/channel-whatsapp-business": "workspace:*",
+    "@harnessgate/channel-twilio": "workspace:*",
+    "@harnessgate/channel-teams": "workspace:*",
+    "@harnessgate/channel-google-chat": "workspace:*",
+    "@harnessgate/channel-matrix": "workspace:*",
+    "@harnessgate/channel-line": "workspace:*",
+    "@harnessgate/channel-feishu": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,38 @@
+provider:
+  type: claude
+  apiKey: ${ANTHROPIC_API_KEY}
+  agentId: agent_01XXXX
+  environmentId: env_01XXXX
+
+channels:
+  web:
+    enabled: true
+    port: 3000
+
+  telegram:
+    enabled: false
+    botToken: ${TELEGRAM_BOT_TOKEN}
+
+  discord:
+    enabled: false
+    token: ${DISCORD_BOT_TOKEN}
+
+  slack:
+    enabled: false
+    botToken: ${SLACK_BOT_TOKEN}
+    appToken: ${SLACK_APP_TOKEN}
+
+  whatsapp:
+    enabled: false
+    authDir: ./auth
+
+# User auth (optional)
+# auth:
+#   webhook: http://localhost:4000/auth/validate
+#   secret: ${AUTH_WEBHOOK_SECRET}
+
+session:
+  maxIdleMs: 3600000
+
+logging:
+  level: info

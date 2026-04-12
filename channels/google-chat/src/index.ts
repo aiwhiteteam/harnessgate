@@ -1,0 +1,2 @@
+// TODO: Implement GoogleChatAdapter
+export {};

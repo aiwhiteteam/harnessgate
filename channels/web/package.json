@@ -1,0 +1,28 @@
+{
+  "name": "@harnessgate/channel-web",
+  "version": "0.1.0",
+  "description": "Web UI channel adapter for HarnessGate",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "@harnessgate/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.0",
+    "typescript": "^5.7.0"
+  }
+}
