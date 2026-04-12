@@ -41,11 +41,12 @@ All packages use pnpm workspace (`workspace:*` references). Three workspace root
 - **Generic providerConfig**: `CreateSessionOpts.providerConfig` is `Record<string, unknown>`. Each provider extracts its own fields (Claude: `agentId`/`environmentId`, HTTP: `baseUrl`).
 - **User identity**: `UserResolver` hook resolves platform sender → internal user. Supports programmatic (library mode) and webhook (CLI mode). Per-user agent/environment overrides. Session keys include userId for per-user scoping. Webhook resolver (`webhook-resolver.ts`) signs requests with HMAC-SHA256.
 
-## Build & run
+## Build, test & run
 
 ```bash
 pnpm install
 pnpm build
+pnpm test           # 38 unit tests (vitest)
 pnpm start          # requires harnessgate.yaml
 ```
 
@@ -57,3 +58,5 @@ pnpm start          # requires harnessgate.yaml
 - Channel packages: `@harnessgate/channel-{name}` in `channels/{name}/`
 - Provider packages: `@harnessgate/provider-{name}` in `providers/{name}/`
 - Each package has `src/index.ts` barrel, `tsconfig.json` extending root, `package.json` with `workspace:*` dep on core
+- Tests co-located with source: `*.test.ts` next to `*.ts`
+- Examples in `examples/` directory
