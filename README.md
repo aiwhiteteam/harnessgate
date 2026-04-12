@@ -1,6 +1,34 @@
-# HarnessGate
+<!-- TODO: Add logo/banner image -->
+<!-- <p align="center"><img src="docs/assets/banner.png" alt="HarnessGate" width="600" /></p> -->
 
-Universal gateway connecting AI agent harness runtimes to messaging platforms.
+<h1 align="center">HarnessGate</h1>
+
+<p align="center">
+  <strong>Connect any AI agent runtime to any messaging platform.</strong>
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
+  <a href="https://github.com/your-org/harnessgate/actions"><img src="https://img.shields.io/github/actions/workflow/status/your-org/harnessgate/ci.yml?branch=main&label=CI" alt="CI" /></a>
+  <img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen" alt="Node" />
+  <img src="https://img.shields.io/badge/TypeScript-strict-blue" alt="TypeScript" />
+</p>
+
+<!-- TODO: Add demo GIF -->
+<!-- <p align="center"><img src="docs/assets/demo.gif" alt="Demo" width="700" /></p> -->
+
+---
+
+## Why HarnessGate?
+
+Existing chatbot frameworks (AstrBot, LangBot, Botpress) run their **own agent loop** — they call LLM APIs, parse tool calls, execute tools locally, and manage context. When you connect them to a managed agent runtime like Claude Managed Agents, they have to **bypass their entire infrastructure** just to pipe messages through.
+
+HarnessGate takes a different approach: **no local agent loop.** It's a pure bridge that delegates all intelligence to the provider runtime. The gateway just routes messages between channels and the agent.
+
+This means:
+- Claude Managed Agents features work out of the box (tool confirmation, custom tools, multi-agent threads, extended thinking)
+- Any future agent runtime plugs in with 4 methods
+- No competing agent loops, no bypassed infrastructure, no wasted abstractions
 
 ```
 [Telegram] [Discord] [Slack] [WhatsApp] [Web UI] [Teams] ...
