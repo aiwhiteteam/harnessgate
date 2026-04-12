@@ -21,14 +21,28 @@
 
 ## Why HarnessGate?
 
-Existing chatbot frameworks (AstrBot, LangBot, Botpress) run their **own agent loop** — they call LLM APIs, parse tool calls, execute tools locally, and manage context. When you connect them to a managed agent runtime like Claude Managed Agents, they have to **bypass their entire infrastructure** just to pipe messages through.
+**HarnessGate is a multi-channel gateway for Claude Managed Agents (and any other agent runtime).**
 
-HarnessGate takes a different approach: **no local agent loop.** It's a pure bridge that delegates all intelligence to the provider runtime. The gateway just routes messages between channels and the agent.
+You built an agent on Claude Managed Agents. Now you want it on Telegram, Discord, Slack, WhatsApp, and a web chat — without rewriting it five times. HarnessGate is the glue: point it at your agent, turn on the channels you want, done.
 
-This means:
-- Claude Managed Agents features work out of the box (tool confirmation, custom tools, multi-agent threads, extended thinking)
-- Any future agent runtime plugs in with 4 methods
-- No competing agent loops, no bypassed infrastructure, no wasted abstractions
+Other chatbot frameworks (AstrBot, LangBot, Botpress) try to **be** the agent — they call LLMs, run tools, and manage context themselves. Plugging Claude Managed Agents into them means fighting their built-in brain.
+
+HarnessGate has **no brain of its own**. It just pipes messages between your users and your agent. Your agent stays in charge, and all its features (tool confirmation, custom tools, multi-agent threads, extended thinking) just work.
+
+### HarnessGate vs OpenClaw
+
+Think of [OpenClaw](https://github.com/openclaw/openclaw) as a **ready-to-use personal assistant** — you install it, it talks to you on WhatsApp / Telegram / Slack / Discord, and the AI brain is baked in. Great if you want a turnkey assistant for yourself.
+
+HarnessGate is the opposite: **bring your own brain**. You already have an agent (Claude Managed Agents, a custom LangGraph server, anything HTTP) — HarnessGate just gives it a mouth on every channel. No opinions about what the agent does, no bundled LLM, no lock-in.
+
+| | OpenClaw | HarnessGate |
+|---|---|---|
+| What it is | Full personal AI assistant | Gateway / bridge only |
+| Agent brain | Built in | **Yours** (Claude Managed Agents, HTTP, custom) |
+| Best for | "I want an assistant on my phone" | "I built an agent, now put it on every channel" |
+| Channels | Many (WhatsApp, Telegram, Slack, …) | Many (WhatsApp, Telegram, Slack, …) |
+
+Short version: **OpenClaw = the whole robot. HarnessGate = the wires connecting your robot to the world.**
 
 ```
 [Telegram] [Discord] [Slack] [WhatsApp] [Web UI] [Teams] ...
