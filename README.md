@@ -33,22 +33,25 @@ HarnessGate has **no brain of its own**. It just pipes messages between your use
 
 Think of [OpenClaw](https://github.com/openclaw/openclaw) as a **ready-to-use personal assistant** — you install it, it talks to you on WhatsApp / Telegram / Slack / Discord, and the AI brain is baked in. Great if you want a turnkey assistant for yourself.
 
-HarnessGate is the opposite: **bring your own brain**. You already have an agent (Claude Managed Agents, a custom LangGraph server, anything HTTP) — HarnessGate just gives it a mouth on every channel. No opinions about what the agent does, no bundled LLM, no lock-in.
+But OpenClaw is designed as a **single-user, single-instance** tool. If you want to serve 1,000 users in a cloud SaaS, you'd need 1,000 OpenClaw instances — there's no built-in multi-tenancy, session isolation, or per-user auth routing. Turning it into a shared platform means fighting its architecture.
+
+HarnessGate is the opposite: **bring your own brain, serve many users**. It's built for multi-tenant from day one — per-user sessions, auth routing (webhook or programmatic), and per-user agent/environment overrides. One instance serves all your users across all channels.
 
 | | OpenClaw | HarnessGate |
 |---|---|---|
 | What it is | Full personal AI assistant | Gateway / bridge only |
 | Agent brain | Built in | **Yours** (Claude Managed Agents, HTTP, custom) |
-| Best for | "I want an assistant on my phone" | "I built an agent, now put it on every channel" |
-| Channels | Many (WhatsApp, Telegram, Slack, …) | Many (WhatsApp, Telegram, Slack, …) |
+| Multi-tenant | No — one instance per user | **Yes** — per-user sessions, auth, agent routing |
+| Best for | "I want an assistant on my phone" | "I built an agent, now put it on every channel for every user" |
+| Channels | Many (WhatsApp, Telegram, Slack, …) | 4 today (Web, Telegram, Discord, Slack), more coming |
 
-Short version: **OpenClaw = the whole robot. HarnessGate = the wires connecting your robot to the world.**
+Short version: **OpenClaw = your personal robot. HarnessGate = the wires connecting your robot to the world, for all your users.**
 
 ```
-[Telegram] [Discord] [Slack] [WhatsApp] [Web UI] [Teams] ...
-     |         |        |        |         |        |
-     +----+----+----+---+----+---+----+----+--------+
-          |         |        |        |
+[Telegram] [Discord] [Slack] [Web UI]    + more planned
+     |         |        |       |
+     +----+----+----+---+------+
+          |         |        |
      ChannelAdapter interface (per platform)
           |         |        |        |
           +----+----+----+---+--------+
@@ -68,7 +71,7 @@ Short version: **OpenClaw = the whole robot. HarnessGate = the wires connecting 
 ## Features
 
 - **Provider-agnostic** — Claude Managed Agents, any HTTP server, or bring your own
-- **12 channel adapters** — Telegram, Discord, Slack, WhatsApp, Web UI, Teams, Google Chat, Matrix, LINE, Feishu, Twilio, WhatsApp Business
+- **4 channel adapters** — Web UI, Telegram, Discord, Slack (WhatsApp, Teams, and more planned)
 - **Session management** — automatic session creation, idle pruning, multi-turn conversations
 - **Buffer-then-send** — accumulates agent responses, sends as one message per turn
 - **Auto-split** — respects per-channel message length limits
@@ -293,18 +296,18 @@ harnessgate/
 │   ├── core/          # Provider/Channel interfaces, Bridge, SessionMap, StreamManager
 │   └── cli/           # CLI entry point
 ├── channels/
-│   ├── web/           # HTTP + WebSocket chat UI
-│   ├── telegram/      # grammY
-│   ├── discord/       # discord.js
-│   ├── slack/         # @slack/bolt
-│   ├── whatsapp/      # Baileys
-│   ├── teams/         # Bot Framework
-│   ├── google-chat/
-│   ├── matrix/        # matrix-js-sdk
-│   ├── line/          # @line/bot-sdk
-│   ├── feishu/        # Feishu/Lark
-│   ├── twilio/        # SMS + Voice
-│   └── whatsapp-business/  # Meta Cloud API
+│   ├── web/           # HTTP + WebSocket chat UI ✅
+│   ├── telegram/      # grammY ✅
+│   ├── discord/       # discord.js ✅
+│   ├── slack/         # @slack/bolt ✅
+│   ├── whatsapp/      # Baileys (planned)
+│   ├── teams/         # Bot Framework (planned)
+│   ├── google-chat/   # (planned)
+│   ├── matrix/        # matrix-js-sdk (planned)
+│   ├── line/          # @line/bot-sdk (planned)
+│   ├── feishu/        # Feishu/Lark (planned)
+│   ├── twilio/        # SMS + Voice (planned)
+│   └── whatsapp-business/  # Meta Cloud API (planned)
 └── providers/
     ├── claude/        # Claude Managed Agents API
     └── http/          # Generic HTTP — any server
