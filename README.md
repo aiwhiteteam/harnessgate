@@ -34,6 +34,8 @@ Universal gateway connecting AI agent harness runtimes to messaging platforms.
 
 ## Quick Start
 
+### As a server (CLI)
+
 ```bash
 git clone https://github.com/your-org/harnessgate.git
 cd harnessgate
@@ -46,6 +48,32 @@ cp harnessgate.example.yaml harnessgate.yaml
 pnpm start
 # Open http://localhost:3000
 ```
+
+### As a library (npm)
+
+```bash
+npm install @harnessgate/core @harnessgate/provider-claude @harnessgate/channel-web
+```
+
+```typescript
+import { Bridge } from "@harnessgate/core";
+import { ClaudeProvider } from "@harnessgate/provider-claude";
+import { WebAdapter } from "@harnessgate/channel-web";
+
+const provider = new ClaudeProvider(process.env.ANTHROPIC_API_KEY!);
+const bridge = new Bridge(provider, {
+  provider: { type: "claude", agentId: "agent_01XXX", environmentId: "env_01XXX" },
+  channels: { web: { enabled: true, port: 3000 } },
+  auth: {},
+  session: { maxIdleMs: 3_600_000 },
+  logging: { level: "info" },
+});
+
+bridge.addChannel(new WebAdapter());
+await bridge.start();
+```
+
+See [`examples/library/main.ts`](examples/library/main.ts) for a full example with auth and event listeners.
 
 ## Provider Setup
 
