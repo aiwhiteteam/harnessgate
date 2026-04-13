@@ -15,19 +15,13 @@ import { TelegramAdapter } from "@harnessgate/platform-telegram";
 // --- In-memory app store (replace with your DB) ---
 
 interface AppRecord {
-  botToken: string;
+  appId: string;
   agentId: string;
   environmentId: string;
 }
 
+// Maps appId → agent routing (filled after connecting)
 const appStore = new Map<string, AppRecord>();
-
-// Seed with your bot — in production these come from your DB/API
-appStore.set("my-bot", {
-  botToken: "YOUR_BOT_TOKEN",
-  agentId: "agent_01XXXX",
-  environmentId: "env_01XXXX",
-});
 
 // --- Bridge setup ---
 
@@ -37,28 +31,24 @@ bridge.addPlatform(new TelegramAdapter());
 
 // Route users to the correct agent based on which app received the message
 bridge.setUserResolver(async (sender, _platform, message) => {
-  // Look up which agent this app maps to
-  const record = [...appStore.entries()].find(
-    ([, r]) => appIdMap.get(r.botToken) === message.appId,
-  );
+  const record = appStore.get(message.appId!);
   if (!record) return null; // reject unknown apps
 
   return {
     userId: sender.id,
-    agentId: record[1].agentId,
-    environmentId: record[1].environmentId,
+    agentId: record.agentId,
+    environmentId: record.environmentId,
   };
 });
 
-// --- Start all apps ---
+// --- Register and start app ---
 
-// Maps botToken → appId (filled after connecting)
-const appIdMap = new Map<string, string>();
+const appId = await bridge.addApp("telegram", { botToken: "YOUR_BOT_TOKEN" });
+appStore.set(appId, {
+  appId,
+  agentId: "agent_01XXXX",
+  environmentId: "env_01XXXX",
+});
+console.log(`Started bot → appId=${appId}`);
 
-for (const [name, record] of appStore) {
-  const appId = await bridge.addApp("telegram", { botToken: record.botToken });
-  appIdMap.set(record.botToken, appId);
-  console.log(`Started ${name} → appId=${appId}`);
-}
-
-console.log("HarnessGate running — Telegram bots are listening");
+console.log("HarnessGate running — Telegram bot is listening");
