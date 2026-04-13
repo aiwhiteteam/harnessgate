@@ -12,9 +12,8 @@ Platforms (inbound)  →  Bridge (orchestrator)  →  Provider (outbound to agen
 ```
 
 - **Provider** (`packages/core/src/provider.ts`) — interface for agent runtimes. Required methods: `createSession`, `sendMessage`, `stream`, `destroySession`. Optional (capability-gated): `interrupt`, `confirmTool`, `submitToolResult`.
-- **PlatformAdapter** (`packages/core/src/platform.ts`) — interface for messaging platforms. Required: `start`, `stop`, `send`. Optional: `sendTyping`.
-- **MultiInstanceAdapter** (`packages/core/src/platform.ts`) — extends `PlatformAdapter` for platforms that support multiple bot instances. `addBot(config, ctx)` returns a platform-assigned `appId`. `removeBot(appId)` tears down an instance. `activeBots()` lists running instances.
-- **Bridge** (`packages/core/src/bridge.ts`) — orchestrator connecting platforms to providers. Manages session mapping, stream lifecycle, message buffering, and text splitting. Supports `addBot(platform, config)` and `removeBot(platform, appId)` for multi-instance adapters.
+- **PlatformAdapter** (`packages/core/src/platform.ts`) — interface for messaging platforms. Required: `start`, `stop`, `send`. Optional: `sendTyping`, `addApp`, `removeApp`, `activeApps`.
+- **Bridge** (`packages/core/src/bridge.ts`) — orchestrator connecting platforms to providers. Manages session mapping, stream lifecycle, message buffering, and text splitting. Supports `addApp(platform, config)` and `removeApp(platform, appId)` for dynamic app management.
 - **SessionStore** (`packages/core/src/session-map.ts`) — interface for session persistence. Maps session keys to provider session IDs. Built-in: `MemorySessionStore` (dev), `SqliteSessionStore` (production default). Swappable via `bridge.setSessionStore()`.
 - **StreamManager** (`packages/core/src/stream-manager.ts`) — maintains one SSE stream per active session with reconnection and event deduplication.
 
@@ -32,7 +31,7 @@ Session key format: `platform:chatType:channelId[:app:appId][:t:threadId][:u:use
 ## Multi-instance / appId
 
 - **appId** — platform-assigned bot/app identity. Opaque to core.
-- Adapters implementing `MultiInstanceAdapter` can run multiple bot instances. Each instance gets its own `appId` after connecting.
+- `PlatformAdapter` has optional `addApp()`/`removeApp()`/`activeApps()` methods for running multiple app instances. Each instance gets its own `appId` after connecting.
 - `InboundMessage.appId` carries the bot identity on every incoming message.
 - `ChannelTarget.appId` routes outbound messages to the correct bot instance.
 - No BotRegistry — `UserResolver` handles auth and bot→agent routing using `message.appId`.

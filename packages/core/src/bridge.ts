@@ -1,5 +1,4 @@
 import type { PlatformAdapter, ChannelTarget } from "./platform.js";
-import { isMultiInstance } from "./platform.js";
 import type { InboundMessage, OutboundMessage } from "./messages.js";
 import type {
   Provider,
@@ -72,36 +71,36 @@ export class Bridge {
   }
 
   /**
-   * Dynamically add and start a bot/app instance on a multi-instance adapter.
+   * Dynamically add and start an app instance on a platform adapter.
    * Returns the platform-assigned appId after connecting.
    */
-  async addBot(platform: string, config: Record<string, unknown>): Promise<string> {
+  async addApp(platform: string, config: Record<string, unknown>): Promise<string> {
     const adapter = this.platforms.get(platform);
     if (!adapter) {
       throw new Error(`No adapter registered for platform: ${platform}`);
     }
-    if (!isMultiInstance(adapter)) {
-      throw new Error(`Adapter "${platform}" does not support multi-instance`);
+    if (!adapter.addApp) {
+      throw new Error(`Adapter "${platform}" does not implement addApp`);
     }
 
-    const appId = await adapter.addBot(config, {
+    const appId = await adapter.addApp(config, {
       onMessage: (msg) => this.handleInbound(msg),
-      onError: (err) => log.error(`Bot ${platform} error: ${err.message}`),
+      onError: (err) => log.error(`App ${platform} error: ${err.message}`),
       config: {},
       signal: this.abortController.signal,
     });
 
-    log.info(`Bot added: ${platform} appId=${appId}`);
+    log.info(`App added: ${platform} appId=${appId}`);
     return appId;
   }
 
-  /** Dynamically stop and remove a bot/app instance. */
-  async removeBot(platform: string, appId: string): Promise<void> {
+  /** Dynamically stop and remove an app instance. */
+  async removeApp(platform: string, appId: string): Promise<void> {
     const adapter = this.platforms.get(platform);
-    if (!adapter || !isMultiInstance(adapter)) return;
+    if (!adapter?.removeApp) return;
 
-    await adapter.removeBot(appId);
-    log.info(`Bot removed: ${platform} appId=${appId}`);
+    await adapter.removeApp(appId);
+    log.info(`App removed: ${platform} appId=${appId}`);
   }
 
   async start(): Promise<void> {

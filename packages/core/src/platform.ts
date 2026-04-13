@@ -4,7 +4,7 @@ export interface ChannelTarget {
   channelId: string;
   threadId?: string;
   replyToId?: string;
-  /** Platform-assigned app/bot ID for multi-instance adapters. Routes send() to the right bot instance. */
+  /** Platform-assigned app ID for routing send() to the correct app instance. */
   appId?: string;
 }
 
@@ -35,10 +35,10 @@ export interface PlatformAdapter {
   /** Platform capabilities for message formatting. */
   readonly capabilities: PlatformCapabilities;
 
-  /** Start listening for inbound messages. */
+  /** Start listening for inbound messages (single-app mode). */
   start(ctx: PlatformContext): Promise<void>;
 
-  /** Stop the platform listener. */
+  /** Stop all app instances. */
   stop(): Promise<void>;
 
   /** Send a message to the platform. */
@@ -46,26 +46,13 @@ export interface PlatformAdapter {
 
   /** Send typing indicator. */
   sendTyping?(target: ChannelTarget): Promise<void>;
-}
 
-/**
- * A platform adapter that supports running multiple bot/app instances
- * concurrently under different credentials.
- *
- * Adapters implementing this can be used for multi-tenant scenarios.
- * The bridge calls addBot/removeBot instead of start() when this
- * interface is detected.
- */
-export interface MultiInstanceAdapter extends PlatformAdapter {
-  /** Add and start a bot/app instance. The appId is resolved from the platform after connecting. */
-  addBot(config: Record<string, unknown>, ctx: PlatformContext): Promise<string>;
-  /** Stop and remove a bot/app instance by its platform-assigned appId. */
-  removeBot(appId: string): Promise<void>;
+  /** Add and start an app instance. Returns the platform-assigned appId after connecting. */
+  addApp?(config: Record<string, unknown>, ctx: PlatformContext): Promise<string>;
+
+  /** Stop and remove an app instance by its platform-assigned appId. */
+  removeApp?(appId: string): Promise<void>;
+
   /** List currently active appIds. */
-  activeBots(): string[];
-}
-
-/** Type guard for multi-instance capable adapters. */
-export function isMultiInstance(adapter: PlatformAdapter): adapter is MultiInstanceAdapter {
-  return "addBot" in adapter && "removeBot" in adapter;
+  activeApps?(): string[];
 }
