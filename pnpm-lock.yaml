@@ -159,66 +159,7 @@ importers:
         specifier: ^5.7.0
         version: 5.9.3
 
-  packages/cli:
-    dependencies:
-      '@harnessgate/channel-discord':
-        specifier: workspace:*
-        version: link:../../channels/discord
-      '@harnessgate/channel-feishu':
-        specifier: workspace:*
-        version: link:../../channels/feishu
-      '@harnessgate/channel-google-chat':
-        specifier: workspace:*
-        version: link:../../channels/google-chat
-      '@harnessgate/channel-line':
-        specifier: workspace:*
-        version: link:../../channels/line
-      '@harnessgate/channel-matrix':
-        specifier: workspace:*
-        version: link:../../channels/matrix
-      '@harnessgate/channel-slack':
-        specifier: workspace:*
-        version: link:../../channels/slack
-      '@harnessgate/channel-teams':
-        specifier: workspace:*
-        version: link:../../channels/teams
-      '@harnessgate/channel-telegram':
-        specifier: workspace:*
-        version: link:../../channels/telegram
-      '@harnessgate/channel-twilio':
-        specifier: workspace:*
-        version: link:../../channels/twilio
-      '@harnessgate/channel-web':
-        specifier: workspace:*
-        version: link:../../channels/web
-      '@harnessgate/channel-whatsapp':
-        specifier: workspace:*
-        version: link:../../channels/whatsapp
-      '@harnessgate/channel-whatsapp-business':
-        specifier: workspace:*
-        version: link:../../channels/whatsapp-business
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../core
-      '@harnessgate/provider-claude':
-        specifier: workspace:*
-        version: link:../../providers/claude
-      '@harnessgate/provider-http':
-        specifier: workspace:*
-        version: link:../../providers/http
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
   packages/core:
-    dependencies:
-      yaml:
-        specifier: ^2.8.3
-        version: 2.8.3
-      zod:
-        specifier: ^3.25.76
-        version: 3.25.76
     devDependencies:
       '@types/better-sqlite3':
         specifier: ^7.6.0
@@ -3260,6 +3201,7 @@ snapshots:
 
   xmlbuilder@13.0.2: {}
 
-  yaml@2.8.3: {}
+  yaml@2.8.3:
+    optional: true
 
   zod@3.25.76: {}
