@@ -2,22 +2,22 @@
 
 ## What's Needed
 
-### Channel Adapters (good first issues)
+### Platform Adapters (good first issues)
 
-These channels have scaffolded packages but need implementation. Each follows the same pattern as the Telegram adapter — see the guide below.
+These platforms have scaffolded packages but need implementation. Each follows the same pattern as the Telegram adapter — see the guide below.
 
-| Channel | Package | Library | Difficulty |
-|---------|---------|---------|------------|
-| WhatsApp | `channels/whatsapp/` | `@whiskeysockets/baileys` | Medium (QR auth flow) |
-| WhatsApp Business | `channels/whatsapp-business/` | Meta Cloud API (raw HTTP) | Medium |
-| Microsoft Teams | `channels/teams/` | `botbuilder` | Medium |
-| Google Chat | `channels/google-chat/` | Google Chat API | Medium |
-| Matrix | `channels/matrix/` | `matrix-js-sdk` | Easy |
-| LINE | `channels/line/` | `@line/bot-sdk` | Easy |
-| Feishu/Lark | `channels/feishu/` | Feishu Open API | Medium |
-| Twilio (SMS) | `channels/twilio/` | `twilio` | Easy |
+| Platform | Package | Library | Difficulty |
+|----------|---------|---------|------------|
+| WhatsApp | `platforms/whatsapp/` | `@whiskeysockets/baileys` | Medium (QR auth flow) |
+| WhatsApp Business | `platforms/whatsapp-business/` | Meta Cloud API (raw HTTP) | Medium |
+| Microsoft Teams | `platforms/teams/` | `botbuilder` | Medium |
+| Google Chat | `platforms/google-chat/` | Google Chat API | Medium |
+| Matrix | `platforms/matrix/` | `matrix-js-sdk` | Easy |
+| LINE | `platforms/line/` | `@line/bot-sdk` | Easy |
+| Feishu/Lark | `platforms/feishu/` | Feishu Open API | Medium |
+| Twilio (SMS) | `platforms/twilio/` | `twilio` | Easy |
 
-Reference implementation: `channels/telegram/src/telegram-adapter.ts` (~90 lines)
+Reference implementation: `platforms/telegram/src/telegram-adapter.ts` (~150 lines)
 
 ### Providers
 
@@ -33,7 +33,7 @@ Reference implementation: `channels/telegram/src/telegram-adapter.ts` (~90 lines
 - Tests (none exist yet — co-located `*.test.ts` files with Vitest)
 - Docker Compose setup
 - Health check endpoint
-- Per-channel rate limiting
+- Per-platform rate limiting
 
 ## Development Setup
 
@@ -44,23 +44,23 @@ pnpm install
 pnpm build
 ```
 
-## Adding a New Channel Adapter
+## Adding a New Platform Adapter
 
 This is the most common contribution. Follow these steps:
 
 ### 1. Create the package
 
 ```bash
-mkdir -p channels/my-channel/src
+mkdir -p platforms/my-platform/src
 ```
 
 ### 2. Add `package.json`
 
 ```json
 {
-  "name": "@harnessgate/channel-my-channel",
+  "name": "@harnessgate/platform-my-platform",
   "version": "0.1.0",
-  "description": "MyChannel adapter for HarnessGate",
+  "description": "MyPlatform adapter for HarnessGate",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -100,22 +100,22 @@ mkdir -p channels/my-channel/src
 
 ### 4. Implement the adapter
 
-Create `channels/my-channel/src/my-channel-adapter.ts`:
+Create `platforms/my-platform/src/my-platform-adapter.ts`:
 
 ```typescript
 import type {
-  ChannelAdapter,
-  ChannelCapabilities,
-  ChannelContext,
+  PlatformAdapter,
+  PlatformCapabilities,
+  PlatformContext,
   ChannelTarget,
   SendResult,
   OutboundMessage,
   InboundMessage,
 } from "@harnessgate/core";
 
-export class MyChannelAdapter implements ChannelAdapter {
-  readonly id = "my-channel";
-  readonly capabilities: ChannelCapabilities = {
+export class MyPlatformAdapter implements PlatformAdapter {
+  readonly id = "my-platform";
+  readonly capabilities: PlatformCapabilities = {
     maxTextLength: 4096,        // platform's max message length
     supportsMarkdown: true,
     supportsThreads: false,
@@ -123,7 +123,7 @@ export class MyChannelAdapter implements ChannelAdapter {
     supportsAttachments: false,
   };
 
-  async start(ctx: ChannelContext): Promise<void> {
+  async start(ctx: PlatformContext): Promise<void> {
     // Initialize your bot/client using ctx.config for credentials
     // Call ctx.onMessage(msg) when a message arrives
     // Use ctx.signal to handle shutdown
@@ -146,18 +146,18 @@ export class MyChannelAdapter implements ChannelAdapter {
 
 ### 5. Create barrel export
 
-Create `channels/my-channel/src/index.ts`:
+Create `platforms/my-platform/src/index.ts`:
 
 ```typescript
-export { MyChannelAdapter } from "./my-channel-adapter.js";
+export { MyPlatformAdapter } from "./my-platform-adapter.js";
 ```
 
 ### 6. Use it
 
 ```typescript
-import { MyChannelAdapter } from "@harnessgate/channel-my-channel";
+import { MyPlatformAdapter } from "@harnessgate/platform-my-platform";
 
-bridge.addChannel(new MyChannelAdapter());
+bridge.addPlatform(new MyPlatformAdapter());
 ```
 
 ### 7. Build and test
@@ -169,7 +169,7 @@ pnpm build
 
 ## Adding a New Provider
 
-Same pattern as channels, but in the `providers/` directory implementing the `Provider` interface.
+Same pattern as platforms, but in the `providers/` directory implementing the `Provider` interface.
 
 ## Code Style
 

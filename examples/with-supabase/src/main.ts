@@ -2,7 +2,7 @@
  * Example: HarnessGate with Supabase for user auth and session persistence.
  *
  * Install:
- *   npm install @harnessgate/core @harnessgate/provider-claude @harnessgate/channel-web @supabase/supabase-js
+ *   npm install @harnessgate/core @harnessgate/provider-claude @harnessgate/platform-web @supabase/supabase-js
  *
  * Required env vars:
  *   ANTHROPIC_API_KEY      — your Anthropic API key
@@ -18,21 +18,22 @@
  *     default_environment_id text
  *   );
  *
- *   create table channel_identities (
+ *   create table platform_identities (
  *     id uuid primary key default gen_random_uuid(),
  *     user_id uuid references users(id),
- *     channel text not null,
+ *     platform text not null,
  *     platform_id text not null,
- *     unique(channel, platform_id)
+ *     unique(platform, platform_id)
  *   );
  *
  *   create table sessions (
  *     key text primary key,
  *     provider_session_id text not null,
- *     channel text not null,
+ *     platform text not null,
  *     channel_id text not null,
  *     thread_id text,
  *     user_id text,
+ *     app_id text,
  *     created_at bigint not null,
  *     last_active_at bigint not null
  *   );
@@ -42,7 +43,7 @@
 
 import { Bridge, type SessionStore, type SessionEntry, type BridgeConfig } from "@harnessgate/core";
 import { ClaudeProvider } from "@harnessgate/provider-claude";
-import { WebAdapter } from "@harnessgate/channel-web";
+import { WebAdapter } from "@harnessgate/platform-web";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -63,10 +64,11 @@ const sessionStore: SessionStore = {
     return {
       key: data.key,
       providerSessionId: data.provider_session_id,
-      channel: data.channel,
+      platform: data.platform,
       channelId: data.channel_id,
       threadId: data.thread_id ?? undefined,
       userId: data.user_id ?? undefined,
+      appId: data.app_id ?? undefined,
       createdAt: data.created_at,
       lastActiveAt: data.last_active_at,
     };
@@ -76,10 +78,11 @@ const sessionStore: SessionStore = {
     await supabase.from("sessions").upsert({
       key,
       provider_session_id: entry.providerSessionId,
-      channel: entry.channel,
+      platform: entry.platform,
       channel_id: entry.channelId,
       thread_id: entry.threadId ?? null,
       user_id: entry.userId ?? null,
+      app_id: entry.appId ?? null,
       created_at: entry.createdAt,
       last_active_at: entry.lastActiveAt,
     });
@@ -105,7 +108,7 @@ const sessionStore: SessionStore = {
 
 const config: BridgeConfig = {
   provider: { type: "claude" },
-  channels: { web: { port: 3000 } },
+  platforms: { web: { port: 3000 } },
 };
 
 // --- Bridge ---
@@ -117,12 +120,12 @@ const bridge = new Bridge(provider, config);
 bridge.setSessionStore(sessionStore);
 
 // Use Supabase for user auth
-bridge.setUserResolver(async (sender, channel, _message) => {
+bridge.setUserResolver(async (sender, platform, _message) => {
   // Look up platform identity → internal user
   const { data: identity } = await supabase
-    .from("channel_identities")
+    .from("platform_identities")
     .select("user_id")
-    .eq("channel", channel)
+    .eq("platform", platform)
     .eq("platform_id", sender.id)
     .single();
 
@@ -144,6 +147,6 @@ bridge.setUserResolver(async (sender, channel, _message) => {
   };
 });
 
-bridge.addChannel(new WebAdapter());
+bridge.addPlatform(new WebAdapter());
 await bridge.start();
 console.log("HarnessGate + Supabase running — open http://localhost:3000");

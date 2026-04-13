@@ -23,7 +23,7 @@
 
 Existing chatbot frameworks (AstrBot, LangBot, Botpress) run their **own agent loop** — they call LLM APIs, parse tool calls, execute tools locally, and manage context. When you connect them to a managed agent runtime like Claude Managed Agents, they have to **bypass their entire infrastructure** just to pipe messages through.
 
-HarnessGate takes a different approach: **no local agent loop.** It's a pure bridge that delegates all intelligence to the provider runtime. The gateway just routes messages between channels and the agent.
+HarnessGate takes a different approach: **no local agent loop.** It's a pure bridge that delegates all intelligence to the provider runtime. The gateway just routes messages between platforms and the agent.
 
 This means:
 - Claude Managed Agents features work out of the box (tool confirmation, custom tools, multi-agent threads, extended thinking)
@@ -35,7 +35,7 @@ This means:
      |         |        |        |         |        |
      +----+----+----+---+----+---+----+----+--------+
           |         |        |        |
-     ChannelAdapter interface (per platform)
+     PlatformAdapter interface (per platform)
           |         |        |        |
           +----+----+----+---+--------+
                |
@@ -54,30 +54,28 @@ This means:
 ## Features
 
 - **Provider-agnostic** — Claude Managed Agents, any HTTP server, or bring your own
-- **12 channel adapters** — Telegram, Discord, Slack, WhatsApp, Web UI, Teams, Google Chat, Matrix, LINE, Feishu, Twilio, WhatsApp Business
+- **12 platform adapters** — Telegram, Discord, Slack, WhatsApp, Web UI, Teams, Google Chat, Matrix, LINE, Feishu, Twilio, WhatsApp Business
+- **Multi-bot** — run multiple bot instances per platform, each mapped to a different agent via `MultiInstanceAdapter`
 - **Session management** — automatic session creation, SQLite persistence, multi-turn conversations
 - **Buffer-then-send** — accumulates agent responses, sends as one message per turn
-- **Auto-split** — respects per-channel message length limits
+- **Auto-split** — respects per-platform message length limits
 - **Event passthrough** — provider-specific events forwarded via `bridge.onEvent()` listeners
 
 ## Quick Start
 
 ```bash
-npm install @harnessgate/core @harnessgate/provider-claude @harnessgate/channel-web
+npm install @harnessgate/core @harnessgate/provider-claude @harnessgate/platform-web
 ```
 
 ```typescript
 import { Bridge } from "@harnessgate/core";
 import { ClaudeProvider } from "@harnessgate/provider-claude";
-import { WebAdapter } from "@harnessgate/channel-web";
+import { WebAdapter } from "@harnessgate/platform-web";
 
 const provider = new ClaudeProvider(process.env.ANTHROPIC_API_KEY!);
 const bridge = new Bridge(provider, {
   provider: { type: "claude" },
-  channels: { web: { enabled: true, port: 3000 } },
-  auth: {},
-  session: { store: "memory" },
-  logging: { level: "info" },
+  platforms: { web: { enabled: true, port: 3000 } },
 });
 
 // Route users to agents (agentId + environmentId from your DB)
@@ -87,7 +85,7 @@ bridge.setUserResolver(async (sender) => ({
   environmentId: "env_01XXXX",
 }));
 
-bridge.addChannel(new WebAdapter());
+bridge.addPlatform(new WebAdapter());
 await bridge.start();
 ```
 
@@ -197,8 +195,8 @@ export default class MyProvider implements Provider {
 HarnessGate supports per-user access control and agent routing via a `UserResolver`:
 
 ```typescript
-bridge.setUserResolver(async (sender, channel, message) => {
-  const user = await db.findUser(channel, sender.id);
+bridge.setUserResolver(async (sender, platform, message) => {
+  const user = await db.findUser(platform, sender.id);
   if (!user?.isActive) return null; // reject
 
   return {
@@ -243,10 +241,47 @@ bridge.setSessionStore({
 
 See [`examples/with-supabase/main.ts`](examples/with-supabase/main.ts) for a complete example with Supabase for both auth and session persistence.
 
-## Channel Configuration
+## Multi-Bot / appId
+
+Platforms that implement `MultiInstanceAdapter` can run multiple bot instances simultaneously. Each bot connects to the platform and receives a platform-assigned `appId` — an opaque identifier that flows through every `InboundMessage` and `ChannelTarget`.
+
+```typescript
+// Add multiple Telegram bots at runtime
+const supportBotId = await bridge.addBot("telegram", { botToken: process.env.SUPPORT_BOT_TOKEN });
+const salesBotId = await bridge.addBot("telegram", { botToken: process.env.SALES_BOT_TOKEN });
+
+// Route based on which bot received the message
+bridge.setUserResolver(async (sender, platform, message) => {
+  const agentId = await db.getAgentForBot(message.appId);
+  return { userId: sender.id, agentId, environmentId: "env_01XXXX" };
+});
+```
+
+### appId per platform
+
+Each platform exposes a different identifier as `appId`. The adapter reads it from the platform SDK after connecting:
+
+| Platform | Source | Example value |
+|----------|--------|---------------|
+| Telegram | `bot.botInfo.id` | `"123456789"` |
+| Discord | `client.application.id` | `"1098765432101234567"` |
+| Slack | `event.api_app_id` | `"A0123456789"` |
+| WhatsApp | Phone number ID from Baileys | `"+14155238886"` |
+| WhatsApp Business | WABA phone number ID | `"106540352267890"` |
+| Teams | `activity.recipient.id` | `"28:abc123..."` |
+| Google Chat | Bot project number | `"projects/123456"` |
+| Matrix | Bot's MXID | `"@mybot:matrix.org"` |
+| LINE | Channel ID | `"1234567890"` |
+| Feishu/Lark | App ID from Open Platform | `"cli_abc123"` |
+| Twilio | Phone number SID | `"+15558675309"` |
+| Web | N/A (single instance) | — |
+
+The `appId` is included in session keys as `app:<appId>`, so each bot maintains separate conversation sessions even in the same channel.
+
+## Platform Configuration
 
 ```yaml
-channels:
+platforms:
   web:
     enabled: true
     port: 3000
@@ -272,8 +307,8 @@ Environment variables are interpolated via `${VAR}` syntax.
 ```
 harnessgate/
 ├── packages/
-│   └── core/          # Provider/Channel interfaces, Bridge, SessionStore, StreamManager
-├── channels/
+│   └── core/          # Provider/Platform interfaces, Bridge, SessionStore, StreamManager
+├── platforms/
 │   ├── web/           # HTTP + SSE chat UI
 │   ├── telegram/      # grammY
 │   ├── discord/       # discord.js
@@ -293,7 +328,7 @@ harnessgate/
 
 ## Extending HarnessGate
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for step-by-step guides on adding channels and providers.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for step-by-step guides on adding platforms and providers.
 
 ### Provider interface
 
@@ -315,13 +350,13 @@ interface Provider {
 }
 ```
 
-### Channel interface
+### Platform interface
 
 ```typescript
-interface ChannelAdapter {
+interface PlatformAdapter {
   readonly id: string;
-  readonly capabilities: ChannelCapabilities;
-  start(ctx: ChannelContext): Promise<void>;
+  readonly capabilities: PlatformCapabilities;
+  start(ctx: PlatformContext): Promise<void>;
   stop(): Promise<void>;
   send(target: ChannelTarget, message: OutboundMessage): Promise<SendResult>;
   sendTyping?(target: ChannelTarget): Promise<void>;

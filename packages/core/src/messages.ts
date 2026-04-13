@@ -14,7 +14,7 @@ export interface Attachment {
 
 export interface InboundMessage {
   id: string;
-  channel: string;
+  platform: string;
   channelId: string;
   threadId?: string;
   sender: Sender;
@@ -22,6 +22,8 @@ export interface InboundMessage {
   attachments?: Attachment[];
   timestamp: number;
   chatType: "direct" | "group" | "channel" | "thread";
+  /** Platform-assigned app/bot ID identifying which app received this message. Set by multi-instance adapters. */
+  appId?: string;
   raw?: unknown;
 }
 

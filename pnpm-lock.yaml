@@ -18,147 +18,6 @@ importers:
         specifier: ^4.1.4
         version: 4.1.4(@types/node@25.6.0)(vite@8.0.8(@types/node@25.6.0)(yaml@2.8.3))
 
-  channels/discord:
-    dependencies:
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      discord.js:
-        specifier: ^14.18.0
-        version: 14.26.2
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  channels/feishu:
-    dependencies:
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  channels/google-chat:
-    dependencies:
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  channels/line:
-    dependencies:
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@line/bot-sdk':
-        specifier: ^9.7.0
-        version: 9.9.0
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  channels/matrix:
-    dependencies:
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      matrix-js-sdk:
-        specifier: ^36.0.0
-        version: 36.2.0
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  channels/slack:
-    dependencies:
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@slack/bolt':
-        specifier: ^4.2.0
-        version: 4.7.0(@types/express@5.0.6)
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  channels/teams:
-    dependencies:
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      botbuilder:
-        specifier: ^4.23.0
-        version: 4.23.3
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  channels/telegram:
-    dependencies:
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      grammy:
-        specifier: ^1.35.0
-        version: 1.42.0
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  channels/twilio:
-    dependencies:
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      twilio:
-        specifier: ^5.5.0
-        version: 5.13.1
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  channels/web:
-    dependencies:
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  channels/whatsapp:
-    dependencies:
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
-  channels/whatsapp-business:
-    dependencies:
-      '@harnessgate/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-    devDependencies:
-      typescript:
-        specifier: ^5.7.0
-        version: 5.9.3
-
   packages/core:
     devDependencies:
       '@types/better-sqlite3':
@@ -171,6 +30,147 @@ importers:
       better-sqlite3:
         specifier: ^11.7.0
         version: 11.10.0
+
+  platforms/discord:
+    dependencies:
+      '@harnessgate/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      discord.js:
+        specifier: ^14.18.0
+        version: 14.26.2
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  platforms/feishu:
+    dependencies:
+      '@harnessgate/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  platforms/google-chat:
+    dependencies:
+      '@harnessgate/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  platforms/line:
+    dependencies:
+      '@harnessgate/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@line/bot-sdk':
+        specifier: ^9.7.0
+        version: 9.9.0
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  platforms/matrix:
+    dependencies:
+      '@harnessgate/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      matrix-js-sdk:
+        specifier: ^36.0.0
+        version: 36.2.0
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  platforms/slack:
+    dependencies:
+      '@harnessgate/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@slack/bolt':
+        specifier: ^4.2.0
+        version: 4.7.0(@types/express@5.0.6)
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  platforms/teams:
+    dependencies:
+      '@harnessgate/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      botbuilder:
+        specifier: ^4.23.0
+        version: 4.23.3
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  platforms/telegram:
+    dependencies:
+      '@harnessgate/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      grammy:
+        specifier: ^1.35.0
+        version: 1.42.0
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  platforms/twilio:
+    dependencies:
+      '@harnessgate/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      twilio:
+        specifier: ^5.5.0
+        version: 5.13.1
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  platforms/web:
+    dependencies:
+      '@harnessgate/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  platforms/whatsapp:
+    dependencies:
+      '@harnessgate/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  platforms/whatsapp-business:
+    dependencies:
+      '@harnessgate/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
 
   providers/claude:
     dependencies:
