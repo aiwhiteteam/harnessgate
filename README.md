@@ -247,8 +247,8 @@ Every platform adapter supports running multiple app instances simultaneously. E
 
 ```typescript
 // Add multiple Telegram bots at runtime
-const supportBotId = await bridge.addApp("telegram", { botToken: process.env.SUPPORT_BOT_TOKEN });
-const salesBotId = await bridge.addApp("telegram", { botToken: process.env.SALES_BOT_TOKEN });
+const supportBotId = await bridge.connect("telegram", { botToken: process.env.SUPPORT_BOT_TOKEN });
+const salesBotId = await bridge.connect("telegram", { botToken: process.env.SALES_BOT_TOKEN });
 
 // Route based on which bot received the message
 bridge.setUserResolver(async (sender, platform, message) => {
@@ -360,9 +360,9 @@ interface PlatformAdapter {
   stop(): Promise<void>;
   send(target: ChannelTarget, message: OutboundMessage): Promise<SendResult>;
   sendTyping?(target: ChannelTarget): Promise<void>;
-  addApp?(config: Record<string, unknown>, ctx: PlatformContext): Promise<string>;
-  removeApp?(appId: string): Promise<void>;
-  activeApps?(): string[];
+  connect?(credentials: Record<string, unknown>, ctx: PlatformContext): Promise<string>;
+  disconnect?(appId: string): Promise<void>;
+  activeConnections?(): string[];
 }
 ```
 

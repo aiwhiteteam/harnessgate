@@ -1,8 +1,8 @@
 /**
- * Example: HarnessGate with Telegram using addApp()
+ * Example: HarnessGate with Telegram using connect()
  *
- * App configs are stored in a simple in-memory store (replace with your DB).
- * On startup, all registered apps are loaded and connected.
+ * App configs are stored in a simple in-memory array (replace with your DB).
+ * On startup, we open a connection for each app.
  *
  * Required env vars:
  *   ANTHROPIC_API_KEY — your Anthropic API key
@@ -18,7 +18,7 @@ interface AppRecord {
   botToken: string;
   agentId: string;
   environmentId: string;
-  appId?: string; // filled after addApp connects
+  appId?: string; // filled after connect
 }
 
 const appStore: AppRecord[] = [
@@ -50,13 +50,13 @@ bridge.setUserResolver(async (sender, _platform, message) => {
   };
 });
 
-// --- Connect all apps from the store ---
+// --- Open connections for all apps in the store ---
 
 for (const record of appStore) {
-  const appId = await bridge.addApp("telegram", { botToken: record.botToken });
+  const appId = await bridge.connect("telegram", { botToken: record.botToken });
   record.appId = appId;
   appById.set(appId, record);
-  console.log(`Started app → appId=${appId}`);
+  console.log(`Connected → appId=${appId}`);
 }
 
 console.log("HarnessGate running — Telegram bot is listening");

@@ -33,7 +33,7 @@ export class TelegramAdapter implements PlatformAdapter {
 
   /**
    * Start a single bot from platform config (backwards-compatible).
-   * For multi-instance, use addApp() instead.
+   * For multi-connection, use connect() instead.
    */
   async start(ctx: PlatformContext): Promise<void> {
     const token = ctx.config.botToken as string;
@@ -41,13 +41,13 @@ export class TelegramAdapter implements PlatformAdapter {
       throw new Error("Telegram adapter requires botToken in platform config");
     }
 
-    await this.addApp({ botToken: token }, ctx);
+    await this.connect({ botToken: token }, ctx);
   }
 
-  async addApp(config: Record<string, unknown>, ctx: PlatformContext): Promise<string> {
-    const token = config.botToken as string;
+  async connect(credentials: Record<string, unknown>, ctx: PlatformContext): Promise<string> {
+    const token = credentials.botToken as string;
     if (!token) {
-      throw new Error("Telegram addApp requires botToken in config");
+      throw new Error("Telegram connect requires botToken in credentials");
     }
 
     const bot = new Bot(token);
@@ -79,7 +79,7 @@ export class TelegramAdapter implements PlatformAdapter {
     return appId;
   }
 
-  async removeApp(appId: string): Promise<void> {
+  async disconnect(appId: string): Promise<void> {
     const instance = this.bots.get(appId);
     if (!instance) return;
 
@@ -88,7 +88,7 @@ export class TelegramAdapter implements PlatformAdapter {
     log.info(`Telegram bot stopped: appId=${appId}`);
   }
 
-  activeApps(): string[] {
+  activeConnections(): string[] {
     return Array.from(this.bots.keys());
   }
 

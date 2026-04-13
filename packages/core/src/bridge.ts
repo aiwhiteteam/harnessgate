@@ -71,36 +71,36 @@ export class Bridge {
   }
 
   /**
-   * Dynamically add and start an app instance on a platform adapter.
+   * Open a new connection on a platform adapter using the given credentials.
    * Returns the platform-assigned appId after connecting.
    */
-  async addApp(platform: string, config: Record<string, unknown>): Promise<string> {
+  async connect(platform: string, credentials: Record<string, unknown>): Promise<string> {
     const adapter = this.platforms.get(platform);
     if (!adapter) {
       throw new Error(`No adapter registered for platform: ${platform}`);
     }
-    if (!adapter.addApp) {
-      throw new Error(`Adapter "${platform}" does not implement addApp`);
+    if (!adapter.connect) {
+      throw new Error(`Adapter "${platform}" does not implement connect`);
     }
 
-    const appId = await adapter.addApp(config, {
+    const appId = await adapter.connect(credentials, {
       onMessage: (msg) => this.handleInbound(msg),
-      onError: (err) => log.error(`App ${platform} error: ${err.message}`),
+      onError: (err) => log.error(`Connection ${platform} error: ${err.message}`),
       config: {},
       signal: this.abortController.signal,
     });
 
-    log.info(`App added: ${platform} appId=${appId}`);
+    log.info(`Connected: ${platform} appId=${appId}`);
     return appId;
   }
 
-  /** Dynamically stop and remove an app instance. */
-  async removeApp(platform: string, appId: string): Promise<void> {
+  /** Close a connection by its platform-assigned appId. */
+  async disconnect(platform: string, appId: string): Promise<void> {
     const adapter = this.platforms.get(platform);
-    if (!adapter?.removeApp) return;
+    if (!adapter?.disconnect) return;
 
-    await adapter.removeApp(appId);
-    log.info(`App removed: ${platform} appId=${appId}`);
+    await adapter.disconnect(appId);
+    log.info(`Disconnected: ${platform} appId=${appId}`);
   }
 
   async start(): Promise<void> {
