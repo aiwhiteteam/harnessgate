@@ -1,4 +1,5 @@
-import type { ChannelAdapter, ChannelTarget } from "./channel.js";
+import type { PlatformAdapter, ChannelTarget } from "./platform.js";
+import { isMultiInstance } from "./platform.js";
 import type { InboundMessage, OutboundMessage } from "./messages.js";
 import type {
   Provider,
@@ -17,18 +18,18 @@ const log = createLogger("bridge");
 export interface BridgeConfig {
   /** Provider config — passed through to provider.createSession() as providerConfig. */
   provider: Record<string, unknown>;
-  /** Per-channel config — keyed by channel id, passed to channel.start(). */
-  channels?: Record<string, Record<string, unknown>>;
+  /** Per-platform config — keyed by platform id, passed to platform.start(). */
+  platforms?: Record<string, Record<string, unknown>>;
 }
 
 interface ActiveTurn {
   chunks: string[];
   target: ChannelTarget;
-  channelId: string;
+  platformId: string;
 }
 
 export class Bridge {
-  private channels = new Map<string, ChannelAdapter>();
+  private platforms = new Map<string, PlatformAdapter>();
   private provider: Provider;
   private sessionStore: SessionStore;
   private streamManager = new StreamManager();
@@ -53,8 +54,8 @@ export class Bridge {
     this.sessionStore = store;
   }
 
-  addChannel(adapter: ChannelAdapter): void {
-    this.channels.set(adapter.id, adapter);
+  addPlatform(adapter: PlatformAdapter): void {
+    this.platforms.set(adapter.id, adapter);
   }
 
   /** Register a listener for all provider events (including raw/provider-specific). */
@@ -70,26 +71,59 @@ export class Bridge {
     this.userResolver = resolver;
   }
 
+  /**
+   * Dynamically add and start a bot/app instance on a multi-instance adapter.
+   * Returns the platform-assigned appId after connecting.
+   */
+  async addBot(platform: string, config: Record<string, unknown>): Promise<string> {
+    const adapter = this.platforms.get(platform);
+    if (!adapter) {
+      throw new Error(`No adapter registered for platform: ${platform}`);
+    }
+    if (!isMultiInstance(adapter)) {
+      throw new Error(`Adapter "${platform}" does not support multi-instance`);
+    }
+
+    const appId = await adapter.addBot(config, {
+      onMessage: (msg) => this.handleInbound(msg),
+      onError: (err) => log.error(`Bot ${platform} error: ${err.message}`),
+      config: {},
+      signal: this.abortController.signal,
+    });
+
+    log.info(`Bot added: ${platform} appId=${appId}`);
+    return appId;
+  }
+
+  /** Dynamically stop and remove a bot/app instance. */
+  async removeBot(platform: string, appId: string): Promise<void> {
+    const adapter = this.platforms.get(platform);
+    if (!adapter || !isMultiInstance(adapter)) return;
+
+    await adapter.removeBot(appId);
+    log.info(`Bot removed: ${platform} appId=${appId}`);
+  }
+
   async start(): Promise<void> {
     log.info(
-      `Starting bridge with provider "${this.provider.id}" and ${this.channels.size} channel(s)`,
+      `Starting bridge with provider "${this.provider.id}" and ${this.platforms.size} platform(s)`,
     );
 
-    // Start all channels
-    const startPromises = Array.from(this.channels.entries()).map(
+    // Start all platforms
+    const startPromises = Array.from(this.platforms.entries()).map(
       ([id, adapter]) => {
-        const channelConfig = this.config.channels?.[id] ?? {};
+        const platformConfig = this.config.platforms?.[id] ?? {};
         return adapter
           .start({
             onMessage: (msg) => this.handleInbound(msg),
             onError: (err) =>
-              log.error(`Channel ${id} error: ${err.message}`),
-            config: channelConfig,
+              log.error(`Platform ${id} error: ${err.message}`),
+            config: platformConfig,
             signal: this.abortController.signal,
           })
-          .then(() => log.info(`Channel started: ${id}`))
+          .then(() => log.info(`Platform started: ${id}`))
           .catch((err) =>
-            log.error(`Failed to start channel ${id}: ${err.message}`),
+            log.error(`Failed to start platform ${id}: ${err.message}`),
           );
       },
     );
@@ -104,9 +138,9 @@ export class Bridge {
     this.abortController.abort();
     this.streamManager.stopAll();
 
-    const stopPromises = Array.from(this.channels.values()).map((adapter) =>
+    const stopPromises = Array.from(this.platforms.values()).map((adapter) =>
       adapter.stop().catch((err) =>
-        log.error(`Error stopping channel ${adapter.id}: ${err.message}`),
+        log.error(`Error stopping platform ${adapter.id}: ${err.message}`),
       ),
     );
     await Promise.all(stopPromises);
@@ -118,14 +152,14 @@ export class Bridge {
     // Resolve user identity + agent routing
     let resolvedUser: ResolvedUser | undefined;
     if (this.userResolver) {
-      const result = await this.userResolver(msg.sender, msg.channel, msg).catch(
+      const result = await this.userResolver(msg.sender, msg.platform, msg).catch(
         (err) => {
           log.error(`User resolver error for ${msg.sender.id}`, err);
           return null;
         },
       );
       if (!result) {
-        log.debug(`User rejected: ${msg.channel}:${msg.sender.id}`);
+        log.debug(`User rejected: ${msg.platform}:${msg.sender.id}`);
         return;
       }
       resolvedUser = result;
@@ -141,13 +175,14 @@ export class Bridge {
     const isDirect = msg.chatType === "direct";
     const isThread = msg.chatType === "thread";
     const sessionKey = buildSessionKey({
-      channel: msg.channel,
+      platform: msg.platform,
       chatType: msg.chatType,
       channelId: msg.channelId,
       userId: isDirect ? userId : undefined,
       threadId: isThread ? msg.threadId : undefined,
       agentId,
       sessionId,
+      appId: msg.appId,
     });
     log.debug(`Inbound from ${sessionKey}: ${msg.text.slice(0, 100)}`);
 
@@ -175,10 +210,11 @@ export class Bridge {
         entry = {
           key: sessionKey,
           providerSessionId: session.id,
-          channel: msg.channel,
+          platform: msg.platform,
           channelId: msg.channelId,
           threadId: msg.threadId,
           userId,
+          appId: msg.appId,
           createdAt: Date.now(),
           lastActiveAt: Date.now(),
         };
@@ -201,13 +237,14 @@ export class Bridge {
     );
 
     // Send typing indicator
-    const channel = this.channels.get(msg.channel);
-    if (channel?.sendTyping) {
+    const adapter = this.platforms.get(msg.platform);
+    if (adapter?.sendTyping) {
       const target: ChannelTarget = {
         channelId: msg.channelId,
         threadId: msg.threadId,
+        appId: msg.appId,
       };
-      channel.sendTyping(target).catch(() => {});
+      adapter.sendTyping(target).catch(() => {});
     }
 
     // Send message to provider
@@ -235,12 +272,13 @@ export class Bridge {
       }
     }
 
-    const channel = this.channels.get(entry.channel);
-    if (!channel) return;
+    const adapter = this.platforms.get(entry.platform);
+    if (!adapter) return;
 
     const target: ChannelTarget = {
       channelId: entry.channelId,
       threadId: entry.threadId,
+      appId: entry.appId,
     };
 
     switch (event.type) {
@@ -248,7 +286,7 @@ export class Bridge {
         // Buffer text, flush on idle
         let turn = this.activeTurns.get(sessionKey);
         if (!turn) {
-          turn = { chunks: [], target, channelId: entry.channel };
+          turn = { chunks: [], target, platformId: entry.platform };
           this.activeTurns.set(sessionKey, turn);
         }
         turn.chunks.push(event.text);
@@ -258,11 +296,11 @@ export class Bridge {
       case "status": {
         if (event.status === "idle") {
           // Flush buffered message
-          await this.flushTurn(sessionKey, channel, target);
+          await this.flushTurn(sessionKey, adapter, target);
         } else if (event.status === "running") {
           // Send typing indicator
-          if (channel.sendTyping) {
-            channel.sendTyping(target).catch(() => {});
+          if (adapter.sendTyping) {
+            adapter.sendTyping(target).catch(() => {});
           }
         }
         break;
@@ -270,11 +308,11 @@ export class Bridge {
 
       case "error": {
         // Flush any partial response before sending error
-        await this.flushTurn(sessionKey, channel, target);
+        await this.flushTurn(sessionKey, adapter, target);
         const errorMsg: OutboundMessage = {
           text: `Error: ${event.message}`,
         };
-        await channel.send(target, errorMsg).catch(() => {});
+        await adapter.send(target, errorMsg).catch(() => {});
         break;
       }
 
@@ -286,7 +324,7 @@ export class Bridge {
 
   private async flushTurn(
     sessionKey: SessionMapKey,
-    channel: ChannelAdapter,
+    adapter: PlatformAdapter,
     target: ChannelTarget,
   ): Promise<void> {
     const turn = this.activeTurns.get(sessionKey);
@@ -297,15 +335,15 @@ export class Bridge {
 
     if (!fullText.trim()) return;
 
-    // Split by channel's max text length
-    const maxLen = channel.capabilities.maxTextLength;
+    // Split by platform's max text length
+    const maxLen = adapter.capabilities.maxTextLength;
     const parts = splitText(fullText, maxLen);
 
     for (const part of parts) {
       try {
-        await channel.send(target, { text: part });
+        await adapter.send(target, { text: part });
       } catch (err) {
-        log.error(`Failed to send to ${channel.id}`, err);
+        log.error(`Failed to send to ${adapter.id}`, err);
       }
     }
   }

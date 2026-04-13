@@ -55,7 +55,7 @@ export interface ResolvedUser {
  */
 export type UserResolver = (
   sender: Sender,
-  channel: string,
+  platform: string,
   message: InboundMessage,
 ) => Promise<ResolvedUser | null>;
 

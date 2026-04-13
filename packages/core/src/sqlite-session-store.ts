@@ -30,10 +30,11 @@ export class SqliteSessionStore implements SessionStore {
       CREATE TABLE IF NOT EXISTS sessions (
         key TEXT PRIMARY KEY,
         provider_session_id TEXT NOT NULL,
-        channel TEXT NOT NULL,
+        platform TEXT NOT NULL,
         channel_id TEXT NOT NULL,
         thread_id TEXT,
         user_id TEXT,
+        app_id TEXT,
         created_at INTEGER NOT NULL,
         last_active_at INTEGER NOT NULL
       )
@@ -42,8 +43,8 @@ export class SqliteSessionStore implements SessionStore {
     this.stmts = {
       get: this.db.prepare("SELECT * FROM sessions WHERE key = ?"),
       set: this.db.prepare(`
-        INSERT OR REPLACE INTO sessions (key, provider_session_id, channel, channel_id, thread_id, user_id, created_at, last_active_at)
-        VALUES (@key, @providerSessionId, @channel, @channelId, @threadId, @userId, @createdAt, @lastActiveAt)
+        INSERT OR REPLACE INTO sessions (key, provider_session_id, platform, channel_id, thread_id, user_id, app_id, created_at, last_active_at)
+        VALUES (@key, @providerSessionId, @platform, @channelId, @threadId, @userId, @appId, @createdAt, @lastActiveAt)
       `),
       delete: this.db.prepare("DELETE FROM sessions WHERE key = ?"),
       touch: this.db.prepare("UPDATE sessions SET last_active_at = ? WHERE key = ?"),
@@ -62,10 +63,11 @@ export class SqliteSessionStore implements SessionStore {
     this.stmts.set.run({
       key,
       providerSessionId: entry.providerSessionId,
-      channel: entry.channel,
+      platform: entry.platform,
       channelId: entry.channelId,
       threadId: entry.threadId ?? null,
       userId: entry.userId ?? null,
+      appId: entry.appId ?? null,
       createdAt: entry.createdAt,
       lastActiveAt: entry.lastActiveAt,
     });
@@ -89,10 +91,11 @@ export class SqliteSessionStore implements SessionStore {
 interface SessionRow {
   key: string;
   provider_session_id: string;
-  channel: string;
+  platform: string;
   channel_id: string;
   thread_id: string | null;
   user_id: string | null;
+  app_id: string | null;
   created_at: number;
   last_active_at: number;
 }
@@ -101,10 +104,11 @@ function rowToEntry(row: SessionRow): SessionEntry {
   return {
     key: row.key,
     providerSessionId: row.provider_session_id,
-    channel: row.channel,
+    platform: row.platform,
     channelId: row.channel_id,
     threadId: row.thread_id ?? undefined,
     userId: row.user_id ?? undefined,
+    appId: row.app_id ?? undefined,
     createdAt: row.created_at,
     lastActiveAt: row.last_active_at,
   };

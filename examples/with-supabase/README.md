@@ -23,21 +23,22 @@ create table users (
   default_environment_id text
 );
 
-create table channel_identities (
+create table platform_identities (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references users(id),
-  channel text not null,
+  platform text not null,
   platform_id text not null,
-  unique(channel, platform_id)
+  unique(platform, platform_id)
 );
 
 create table sessions (
   key text primary key,
   provider_session_id text not null,
-  channel text not null,
+  platform text not null,
   channel_id text not null,
   thread_id text,
   user_id text,
+  app_id text,
   created_at bigint not null,
   last_active_at bigint not null
 );
@@ -60,18 +61,18 @@ npm start
 
 Open http://localhost:3000 to chat via the Web UI.
 
-## Adding channels
+## Adding platforms
 
 ```typescript
-import { TelegramAdapter } from "@harnessgate/channel-telegram";
+import { TelegramAdapter } from "@harnessgate/platform-telegram";
 
-bridge.addChannel(new TelegramAdapter());
+bridge.addPlatform(new TelegramAdapter());
 ```
 
-Add channel config to the `BridgeConfig.channels` object in `src/main.ts`:
+Add platform config to the `BridgeConfig.platforms` object in `src/main.ts`:
 
 ```typescript
-channels: {
+platforms: {
   web: { port: 3000 },
   telegram: { botToken: process.env.TELEGRAM_BOT_TOKEN },
 },

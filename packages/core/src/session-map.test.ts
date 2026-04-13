@@ -3,33 +3,38 @@ import { MemorySessionStore, buildSessionKey, type SessionEntry } from "./sessio
 
 describe("buildSessionKey", () => {
   it("builds a composite key", () => {
-    expect(buildSessionKey({ channel: "telegram", chatType: "direct", channelId: "12345" }))
+    expect(buildSessionKey({ platform: "telegram", chatType: "direct", channelId: "12345" }))
       .toBe("telegram:direct:12345");
   });
 
   it("handles group chats", () => {
-    expect(buildSessionKey({ channel: "discord", chatType: "group", channelId: "guild-99" }))
+    expect(buildSessionKey({ platform: "discord", chatType: "group", channelId: "guild-99" }))
       .toBe("discord:group:guild-99");
   });
 
   it("includes userId when provided", () => {
-    expect(buildSessionKey({ channel: "telegram", chatType: "direct", channelId: "chat-1", userId: "user-42" }))
+    expect(buildSessionKey({ platform: "telegram", chatType: "direct", channelId: "chat-1", userId: "user-42" }))
       .toBe("telegram:direct:chat-1:u:user-42");
   });
 
   it("includes threadId when provided", () => {
-    expect(buildSessionKey({ channel: "slack", chatType: "thread", channelId: "ch1", threadId: "ts123" }))
+    expect(buildSessionKey({ platform: "slack", chatType: "thread", channelId: "ch1", threadId: "ts123" }))
       .toBe("slack:thread:ch1:t:ts123");
   });
 
   it("includes agentId and sessionId when provided", () => {
-    expect(buildSessionKey({ channel: "web", chatType: "direct", channelId: "c1", userId: "u1", agentId: "agent_coding", sessionId: "conv_1" }))
+    expect(buildSessionKey({ platform: "web", chatType: "direct", channelId: "c1", userId: "u1", agentId: "agent_coding", sessionId: "conv_1" }))
       .toBe("web:direct:c1:u:u1:a:agent_coding:s:conv_1");
   });
 
   it("omits undefined segments", () => {
-    expect(buildSessionKey({ channel: "telegram", chatType: "direct", channelId: "12345", userId: undefined }))
+    expect(buildSessionKey({ platform: "telegram", chatType: "direct", channelId: "12345", userId: undefined }))
       .toBe("telegram:direct:12345");
+  });
+
+  it("includes appId when provided", () => {
+    expect(buildSessionKey({ platform: "telegram", chatType: "direct", channelId: "12345", appId: "123456789" }))
+      .toBe("telegram:direct:12345:app:123456789");
   });
 });
 
@@ -40,7 +45,7 @@ describe("MemorySessionStore", () => {
     return {
       key: "test:direct:1",
       providerSessionId: "sesn_01",
-      channel: "test",
+      platform: "test",
       channelId: "1",
       createdAt: Date.now(),
       lastActiveAt: Date.now(),

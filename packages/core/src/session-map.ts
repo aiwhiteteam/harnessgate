@@ -5,15 +5,17 @@ const log = createLogger("session-map");
 export type SessionMapKey = string;
 
 export function buildSessionKey(opts: {
-  channel: string;
+  platform: string;
   chatType: string;
   channelId: string;
   threadId?: string;
   userId?: string;
   agentId?: string;
   sessionId?: string;
+  appId?: string;
 }): SessionMapKey {
-  const parts = [opts.channel, opts.chatType, opts.channelId];
+  const parts = [opts.platform, opts.chatType, opts.channelId];
+  if (opts.appId) parts.push(`app:${opts.appId}`);
   if (opts.threadId) parts.push(`t:${opts.threadId}`);
   if (opts.userId) parts.push(`u:${opts.userId}`);
   if (opts.agentId) parts.push(`a:${opts.agentId}`);
@@ -24,10 +26,11 @@ export function buildSessionKey(opts: {
 export interface SessionEntry {
   key: SessionMapKey;
   providerSessionId: string;
-  channel: string;
+  platform: string;
   channelId: string;
   threadId?: string;
   userId?: string;
+  appId?: string;
   createdAt: number;
   lastActiveAt: number;
 }
