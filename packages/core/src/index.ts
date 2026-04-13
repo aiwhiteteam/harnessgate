@@ -38,3 +38,10 @@ export { SqliteSessionStore } from "./sqlite-session-store.js";
 export { StreamManager } from "./stream-manager.js";
 export { Bridge, type BridgeConfig } from "./bridge.js";
 export { createLogger, setLogLevel, type LogLevel } from "./logger.js";
+export {
+  loadConfig,
+  getLogLevel,
+  getEnabledChannels,
+  type HarnessGateConfig,
+} from "./config.js";
+export { createWebhookResolver } from "./webhook-resolver.js";
