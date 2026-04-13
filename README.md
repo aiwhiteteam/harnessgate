@@ -4,7 +4,7 @@
 <h1 align="center">HarnessGate</h1>
 
 <p align="center">
-  <strong>Connect Claude Managed Agents or any harness runtime to any messaging platform.</strong>
+  <strong>Connect any AI agent runtime to any messaging platform.</strong>
 </p>
 
 <p align="center">
@@ -21,37 +21,20 @@
 
 ## Why HarnessGate?
 
-**HarnessGate is a multi-channel gateway for Claude Managed Agents (and any other agent runtime).**
+Existing chatbot frameworks (AstrBot, LangBot, Botpress) run their **own agent loop** — they call LLM APIs, parse tool calls, execute tools locally, and manage context. When you connect them to a managed agent runtime like Claude Managed Agents, they have to **bypass their entire infrastructure** just to pipe messages through.
 
-You built an agent on Claude Managed Agents. Now you want it on Telegram, Discord, Slack, WhatsApp, and a web chat — without rewriting it five times. HarnessGate is the glue: point it at your agent, turn on the channels you want, done.
+HarnessGate takes a different approach: **no local agent loop.** It's a pure bridge that delegates all intelligence to the provider runtime. The gateway just routes messages between channels and the agent.
 
-Other chatbot frameworks (AstrBot, LangBot, Botpress) try to **be** the agent — they call LLMs, run tools, and manage context themselves. Plugging Claude Managed Agents into them means fighting their built-in brain.
-
-HarnessGate has **no brain of its own**. It just pipes messages between your users and your agent. Your agent stays in charge, and all its features (tool confirmation, custom tools, multi-agent threads, extended thinking) just work.
-
-### HarnessGate vs OpenClaw
-
-Think of [OpenClaw](https://github.com/openclaw/openclaw) as a **ready-to-use personal assistant** — you install it, it talks to you on WhatsApp / Telegram / Slack / Discord, and the AI brain is baked in. Great if you want a turnkey assistant for yourself.
-
-But OpenClaw is designed as a **single-user, single-instance** tool. If you want to serve 1,000 users in a cloud SaaS, you'd need 1,000 OpenClaw instances — there's no built-in multi-tenancy, session isolation, or per-user auth routing. Turning it into a shared platform means fighting its architecture.
-
-HarnessGate is the opposite: **bring your own brain, serve many users**. It's built for multi-tenant from day one — per-user sessions, auth routing (webhook or programmatic), and per-user agent/environment overrides. One instance serves all your users across all channels.
-
-| | OpenClaw | HarnessGate |
-|---|---|---|
-| What it is | Full personal AI assistant | Gateway / bridge only |
-| Agent brain | Built in | **Yours** (Claude Managed Agents, HTTP, custom) |
-| Multi-tenant | No — one instance per user | **Yes** — per-user sessions, auth, agent routing |
-| Best for | "I want an assistant on my phone" | "I built an agent, now put it on every channel for every user" |
-| Channels | Many (WhatsApp, Telegram, Slack, …) | 4 today (Web, Telegram, Discord, Slack), more coming |
-
-Short version: **OpenClaw = your personal robot. HarnessGate = the wires connecting your robot to the world, for all your users.**
+This means:
+- Claude Managed Agents features work out of the box (tool confirmation, custom tools, multi-agent threads, extended thinking)
+- Any future agent runtime plugs in with 4 methods
+- No competing agent loops, no bypassed infrastructure, no wasted abstractions
 
 ```
-[Telegram] [Discord] [Slack] [Web UI]    + more planned
-     |         |        |       |
-     +----+----+----+---+------+
-          |         |        |
+[Telegram] [Discord] [Slack] [WhatsApp] [Web UI] [Teams] ...
+     |         |        |        |         |        |
+     +----+----+----+---+----+---+----+----+--------+
+          |         |        |        |
      ChannelAdapter interface (per platform)
           |         |        |        |
           +----+----+----+---+--------+
@@ -71,30 +54,13 @@ Short version: **OpenClaw = your personal robot. HarnessGate = the wires connect
 ## Features
 
 - **Provider-agnostic** — Claude Managed Agents, any HTTP server, or bring your own
-- **4 channel adapters** — Web UI, Telegram, Discord, Slack (WhatsApp, Teams, and more planned)
-- **Session management** — automatic session creation, idle pruning, multi-turn conversations
+- **12 channel adapters** — Telegram, Discord, Slack, WhatsApp, Web UI, Teams, Google Chat, Matrix, LINE, Feishu, Twilio, WhatsApp Business
+- **Session management** — automatic session creation, SQLite persistence, multi-turn conversations
 - **Buffer-then-send** — accumulates agent responses, sends as one message per turn
 - **Auto-split** — respects per-channel message length limits
 - **Event passthrough** — provider-specific events forwarded via `bridge.onEvent()` listeners
 
 ## Quick Start
-
-### As a server (CLI)
-
-```bash
-git clone https://github.com/your-org/harnessgate.git
-cd harnessgate
-pnpm install
-pnpm build
-
-cp harnessgate.example.yaml harnessgate.yaml
-# Edit harnessgate.yaml — see Provider Setup below
-
-pnpm start
-# Open http://localhost:3000
-```
-
-### As a library (npm)
 
 ```bash
 npm install @harnessgate/core @harnessgate/provider-claude @harnessgate/channel-web
@@ -107,18 +73,25 @@ import { WebAdapter } from "@harnessgate/channel-web";
 
 const provider = new ClaudeProvider(process.env.ANTHROPIC_API_KEY!);
 const bridge = new Bridge(provider, {
-  provider: { type: "claude", agentId: "agent_01XXX", environmentId: "env_01XXX" },
+  provider: { type: "claude" },
   channels: { web: { enabled: true, port: 3000 } },
   auth: {},
-  session: { maxIdleMs: 3_600_000 },
+  session: { store: "memory" },
   logging: { level: "info" },
 });
+
+// Route users to agents (agentId + environmentId from your DB)
+bridge.setUserResolver(async (sender) => ({
+  userId: sender.id,
+  agentId: "agent_01XXXX",
+  environmentId: "env_01XXXX",
+}));
 
 bridge.addChannel(new WebAdapter());
 await bridge.start();
 ```
 
-See [`examples/library/main.ts`](examples/library/main.ts) for a full example with auth and event listeners.
+See [`examples/quickstart/`](examples/quickstart/) for a minimal starter or [`examples/with-supabase/`](examples/with-supabase/) for a production starter with Supabase auth and session persistence.
 
 ## Provider Setup
 
@@ -221,45 +194,54 @@ export default class MyProvider implements Provider {
 
 ## User Auth
 
-HarnessGate supports per-user access control and agent routing. Two modes:
-
-### Programmatic (library mode)
+HarnessGate supports per-user access control and agent routing via a `UserResolver`:
 
 ```typescript
-import { Bridge } from "@harnessgate/core";
-
-const bridge = new Bridge(provider, config);
-
-bridge.setUserResolver(async (sender, channel) => {
+bridge.setUserResolver(async (sender, channel, message) => {
   const user = await db.findUser(channel, sender.id);
   if (!user?.isActive) return null; // reject
 
   return {
     userId: user.id,
-    agentId: user.agentId,         // per-user agent override
-    environmentId: user.envId,     // per-user environment override
+    agentId: user.agentId,         // which agent template
+    environmentId: user.envId,     // which environment
     metadata: { plan: user.plan }, // passed to provider session
   };
 });
 ```
 
-### Webhook (CLI mode)
+Return `null` to reject. When no resolver is set, all users are allowed with their platform ID as the user ID.
+
+## Session Management
+
+Each conversation context gets its own Claude session:
+
+| Context | Session scope | Example key |
+|---------|--------------|-------------|
+| DM | Per user | `telegram:direct:123:u:user99` |
+| Group/Channel | Shared (all users) | `slack:group:ch1` |
+| Thread | Per thread | `discord:thread:ch1:t:thread99` |
+
+Sessions are persisted to **SQLite by default** (survives restarts). Configurable:
 
 ```yaml
-auth:
-  webhook: https://myapp.com/auth/validate
-  secret: ${AUTH_WEBHOOK_SECRET}
+session:
+  store: sqlite               # "sqlite" (default) or "memory"
+  path: ./harnessgate.db      # SQLite file path (only for sqlite)
 ```
 
-HarnessGate POSTs `{ channel, senderId, senderUsername, senderDisplayName }` to your webhook. Your server returns:
+For custom stores (Supabase, Postgres, Redis), use the library mode:
 
-```json
-{ "allowed": true, "userId": "u99", "agentId": "agent_premium" }
+```typescript
+bridge.setSessionStore({
+  async get(key) { /* query your DB */ },
+  async set(key, entry) { /* upsert */ },
+  async delete(key) { /* delete */ },
+  async touch(key) { /* update lastActiveAt */ },
+});
 ```
 
-Or `{ "allowed": false }` to reject. The request body is signed with HMAC-SHA256 in the `X-HarnessGate-Signature` header when a secret is configured.
-
-When no auth is configured, all users are allowed with their platform ID as the user ID.
+See [`examples/with-supabase/main.ts`](examples/with-supabase/main.ts) for a complete example with Supabase for both auth and session persistence.
 
 ## Channel Configuration
 
@@ -279,9 +261,6 @@ channels:
     botToken: ${SLACK_BOT_TOKEN}
     appToken: ${SLACK_APP_TOKEN}
 
-session:
-  maxIdleMs: 3600000
-
 logging:
   level: info
 ```
@@ -293,21 +272,20 @@ Environment variables are interpolated via `${VAR}` syntax.
 ```
 harnessgate/
 ├── packages/
-│   ├── core/          # Provider/Channel interfaces, Bridge, SessionMap, StreamManager
-│   └── cli/           # CLI entry point
+│   └── core/          # Provider/Channel interfaces, Bridge, SessionStore, StreamManager
 ├── channels/
-│   ├── web/           # HTTP + WebSocket chat UI ✅
-│   ├── telegram/      # grammY ✅
-│   ├── discord/       # discord.js ✅
-│   ├── slack/         # @slack/bolt ✅
-│   ├── whatsapp/      # Baileys (planned)
-│   ├── teams/         # Bot Framework (planned)
-│   ├── google-chat/   # (planned)
-│   ├── matrix/        # matrix-js-sdk (planned)
-│   ├── line/          # @line/bot-sdk (planned)
-│   ├── feishu/        # Feishu/Lark (planned)
-│   ├── twilio/        # SMS + Voice (planned)
-│   └── whatsapp-business/  # Meta Cloud API (planned)
+│   ├── web/           # HTTP + SSE chat UI
+│   ├── telegram/      # grammY
+│   ├── discord/       # discord.js
+│   ├── slack/         # @slack/bolt
+│   ├── whatsapp/      # Baileys
+│   ├── teams/         # Bot Framework
+│   ├── google-chat/
+│   ├── matrix/        # matrix-js-sdk
+│   ├── line/          # @line/bot-sdk
+│   ├── feishu/        # Feishu/Lark
+│   ├── twilio/        # SMS + Voice
+│   └── whatsapp-business/  # Meta Cloud API
 └── providers/
     ├── claude/        # Claude Managed Agents API
     └── http/          # Generic HTTP — any server

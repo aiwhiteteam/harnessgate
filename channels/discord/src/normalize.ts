@@ -16,7 +16,10 @@ export function normalizeMessage(msg: Message): InboundMessage | null {
   else if (isThread) chatType = "thread";
   else chatType = "group";
 
-  const channelId = msg.channel.id;
+  // For threads, use parent channel as channelId and thread as threadId
+  const channelId = isThread && "parentId" in msg.channel && msg.channel.parentId
+    ? msg.channel.parentId
+    : msg.channel.id;
   const threadId = isThread ? msg.channel.id : undefined;
 
   const attachments: Attachment[] = msg.attachments.map((att) => {

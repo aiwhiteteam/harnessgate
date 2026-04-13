@@ -14,8 +14,13 @@ export function normalizeMessage(ctx: Context): InboundMessage | null {
   }
 
   const chatId = String(msg.chat.id);
-  const chatType = msg.chat.type === "private" ? "direct" as const : "group" as const;
-  const threadId = msg.message_thread_id ? String(msg.message_thread_id) : undefined;
+  const hasThread = !!msg.message_thread_id;
+  const threadId = hasThread ? String(msg.message_thread_id) : undefined;
+
+  let chatType: "direct" | "group" | "thread";
+  if (msg.chat.type === "private") chatType = "direct";
+  else if (hasThread) chatType = "thread";
+  else chatType = "group";
 
   const sender = {
     id: String(msg.from?.id ?? "unknown"),

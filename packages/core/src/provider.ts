@@ -1,4 +1,4 @@
-import type { MessagePayload, Sender } from "./messages.js";
+import type { MessagePayload, Sender, InboundMessage } from "./messages.js";
 
 export type SessionStatus = "idle" | "running" | "rescheduling" | "terminated";
 
@@ -35,8 +35,10 @@ export interface CreateSessionOpts {
 export interface ResolvedUser {
   /** Your internal user ID. */
   userId: string;
-  /** Override agent for this user (e.g. premium users get a different agent). */
+  /** Which agent handles this message. Falls back to config default if omitted. */
   agentId?: string;
+  /** Conversation ID for multiple chats with the same agent. Defaults to "default". */
+  sessionId?: string;
   /** Override environment for this user. */
   environmentId?: string;
   /** Arbitrary metadata passed to the provider session. */
@@ -44,15 +46,18 @@ export interface ResolvedUser {
 }
 
 /**
- * Resolves a platform sender to an internal user.
+ * Resolves a platform sender to an internal user and routes to an agent.
  * Return null to reject (unauthorized).
  *
- * Programmatic mode: implement this function directly.
- * CLI mode: HarnessGate calls a webhook that returns the same shape.
+ * The resolver receives the full InboundMessage so it can route based on
+ * text commands, channel context, or any other message property.
+ *
+ * Implement this function and pass it to bridge.setUserResolver().
  */
 export type UserResolver = (
   sender: Sender,
   channel: string,
+  message: InboundMessage,
 ) => Promise<ResolvedUser | null>;
 
 /**

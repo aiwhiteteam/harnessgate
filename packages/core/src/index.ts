@@ -27,14 +27,21 @@ export type {
 } from "./messages.js";
 
 export {
-  SessionMap,
+  MemorySessionStore,
   buildSessionKey,
+  type SessionStore,
   type SessionEntry,
   type SessionMapKey,
 } from "./session-map.js";
+export { SqliteSessionStore } from "./sqlite-session-store.js";
 
 export { StreamManager } from "./stream-manager.js";
-export { Bridge } from "./bridge.js";
-export { loadConfig, getEnabledChannels, getLogLevel, type HarnessGateConfig } from "./config.js";
+export { Bridge, type BridgeConfig } from "./bridge.js";
 export { createLogger, setLogLevel, type LogLevel } from "./logger.js";
+export {
+  loadConfig,
+  getLogLevel,
+  getEnabledChannels,
+  type HarnessGateConfig,
+} from "./config.js";
 export { createWebhookResolver } from "./webhook-resolver.js";

@@ -14,13 +14,24 @@ Channels (inbound)  →  Bridge (orchestrator)  →  Provider (outbound to agent
 - **Provider** (`packages/core/src/provider.ts`) — interface for agent runtimes. Required methods: `createSession`, `sendMessage`, `stream`, `destroySession`. Optional (capability-gated): `interrupt`, `confirmTool`, `submitToolResult`.
 - **ChannelAdapter** (`packages/core/src/channel.ts`) — interface for messaging platforms. Required: `start`, `stop`, `send`. Optional: `sendTyping`.
 - **Bridge** (`packages/core/src/bridge.ts`) — orchestrator connecting channels to providers. Manages session mapping, stream lifecycle, message buffering, and text splitting.
-- **SessionMap** (`packages/core/src/session-map.ts`) — maps `channel:chatType:channelId:userId` keys to provider session IDs. Per-user sessions.
+- **SessionStore** (`packages/core/src/session-map.ts`) — interface for session persistence. Maps session keys to provider session IDs. Built-in: `MemorySessionStore` (dev), `SqliteSessionStore` (production default). Swappable via `bridge.setSessionStore()`.
 - **StreamManager** (`packages/core/src/stream-manager.ts`) — maintains one SSE stream per active session with reconnection and event deduplication.
+
+## Session scoping
+
+One conversation context = one Claude session (not one agent — agent is a template).
+
+- **DM**: per-user session → key includes `u:userId`
+- **Group/Channel**: shared session → key is just `channel:group:channelId`
+- **Thread**: per-thread session → key includes `t:threadId`
+- Optional: `a:agentId` and `s:sessionId` for multi-agent and multi-conversation routing
+
+Session key format: `channel:chatType:channelId[:t:threadId][:u:userId][:a:agentId][:s:sessionId]`
 
 ## Monorepo layout
 
 ```
-packages/       → core infrastructure (core, cli)
+packages/       → core infrastructure (core)
 channels/       → messaging platform adapters (web, telegram, discord, ...)
 providers/      → agent runtime backends (claude, http)
 ```
@@ -39,15 +50,15 @@ All packages use pnpm workspace (`workspace:*` references). Three workspace root
 - **Raw event passthrough**: provider-specific events that don't map to the universal `ProviderEvent` union are emitted as `{ type: "raw", eventType, data }`. Bridge forwards them to `onEvent()` listeners.
 - **Provider capabilities**: optional methods (`interrupt`, `confirmTool`, `submitToolResult`) are gated by a `capabilities` object. Bridge checks capabilities before calling.
 - **Generic providerConfig**: `CreateSessionOpts.providerConfig` is `Record<string, unknown>`. Each provider extracts its own fields (Claude: `agentId`/`environmentId`, HTTP: `baseUrl`).
-- **User identity**: `UserResolver` hook resolves platform sender → internal user. Supports programmatic (library mode) and webhook (CLI mode). Per-user agent/environment overrides. Session keys include userId for per-user scoping. Webhook resolver (`webhook-resolver.ts`) signs requests with HMAC-SHA256.
+- **User identity**: `UserResolver` hook resolves platform sender → internal user. Receives full `InboundMessage` for routing context. Per-user agent/environment overrides.
+- **Session persistence**: SQLite default via `SqliteSessionStore` (WAL mode, prepared statements). Falls back to `MemorySessionStore`. Swappable via `bridge.setSessionStore()`.
 
 ## Build, test & run
 
 ```bash
 pnpm install
 pnpm build
-pnpm test           # 38 unit tests (vitest)
-pnpm start          # requires harnessgate.yaml
+pnpm test           # unit tests (vitest)
 ```
 
 ## Conventions

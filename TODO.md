@@ -3,12 +3,12 @@
 ## Done
 
 - Core: Provider interface, ChannelAdapter interface, Bridge orchestrator
-- Providers: Claude Managed Agents, HTTP (generic), dynamic loading
-- Channels: Web UI, Telegram, Discord, Slack (+ 8 scaffolded)
-- User auth: UserResolver hook (programmatic + webhook), per-user agent routing, HMAC signing
-- Session management: per-user scoping, idle pruning, stream management
-- Tests: 38 unit tests (session-map, config, bridge, logger, stream-manager)
-- Docs: README, CONTRIBUTING, CLAUDE.md, example config, library example
+- Providers: Claude Managed Agents, HTTP (generic)
+- Channels: Web UI (HTTP+SSE), Telegram, Discord, Slack (+ 8 scaffolded)
+- User auth: UserResolver hook, per-user agent routing, per-conversation session scoping
+- Session management: SQLite default, swappable SessionStore interface
+- Examples: quickstart, with-supabase (runnable starters)
+- Tests: 26 unit tests (session-map, bridge, logger, stream-manager)
 - CI: GitHub Actions (typecheck + build)
 
 ## Up Next

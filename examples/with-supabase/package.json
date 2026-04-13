@@ -1,0 +1,22 @@
+{
+  "name": "harnessgate-supabase-starter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@harnessgate/core": "^0.1.0",
+    "@harnessgate/provider-claude": "^0.1.0",
+    "@harnessgate/channel-web": "^0.1.0",
+    "@harnessgate/channel-telegram": "^0.1.0",
+    "@supabase/supabase-js": "^2.49.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  }
+}
