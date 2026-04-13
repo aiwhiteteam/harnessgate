@@ -17,10 +17,7 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist"
   },
-  "dependencies": {
-    "yaml": "^2.8.3",
-    "zod": "^3.25.76"
-  },
+  "dependencies": {},
   "optionalDependencies": {
     "better-sqlite3": "^11.7.0"
   },
