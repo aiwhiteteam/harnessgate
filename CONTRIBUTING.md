@@ -38,7 +38,7 @@ Reference implementation: `channels/telegram/src/telegram-adapter.ts` (~90 lines
 ## Development Setup
 
 ```bash
-git clone https://github.com/aiwhiteteam/harnessgate.git
+git clone https://github.com/your-org/harnessgate.git
 cd harnessgate
 pnpm install
 pnpm build
@@ -152,33 +152,15 @@ Create `channels/my-channel/src/index.ts`:
 export { MyChannelAdapter } from "./my-channel-adapter.js";
 ```
 
-### 6. Register in the CLI
-
-Add to `packages/cli/src/commands/start.ts`:
+### 6. Use it
 
 ```typescript
 import { MyChannelAdapter } from "@harnessgate/channel-my-channel";
 
-const CHANNEL_REGISTRY: Record<string, () => ChannelAdapter> = {
-  // ...existing channels
-  "my-channel": () => new MyChannelAdapter(),
-};
+bridge.addChannel(new MyChannelAdapter());
 ```
 
-Add the dependency to `packages/cli/package.json`.
-
-### 7. Add config section
-
-Add to `harnessgate.example.yaml`:
-
-```yaml
-channels:
-  my-channel:
-    enabled: false
-    token: ${MY_CHANNEL_TOKEN}
-```
-
-### 8. Build and test
+### 7. Build and test
 
 ```bash
 pnpm install
@@ -200,9 +182,6 @@ Same pattern as channels, but in the `providers/` directory implementing the `Pr
 ## Pull Requests
 
 - One feature per PR
-- Max 10 open PRs per author
-- No refactor-only PRs unless a maintainer asks
 - Include a description of what changed and why
-- Run `pnpm build && pnpm test` locally before submitting
-- Include screenshots (before/after) for UI or channel changes
+- Ensure `pnpm build` passes
 - Add tests for new functionality

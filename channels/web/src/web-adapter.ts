@@ -1,9 +1,7 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { readFileSync } from "node:fs";
-import { randomUUID } from "node:crypto";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { WebSocketServer, WebSocket } from "ws";
 import type {
   ChannelAdapter,
   ChannelCapabilities,
@@ -19,9 +17,10 @@ const log = createLogger("channel-web");
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-interface WebClient {
-  ws: WebSocket;
-  id: string;
+/** Active SSE connection for a user. */
+interface SSEClient {
+  res: ServerResponse;
+  userId: string;
 }
 
 export class WebAdapter implements ChannelAdapter {
@@ -35,8 +34,7 @@ export class WebAdapter implements ChannelAdapter {
   };
 
   private server?: ReturnType<typeof createServer>;
-  private wss?: WebSocketServer;
-  private clients = new Map<string, WebClient>();
+  private sseClients = new Map<string, SSEClient>();
   private onMessageHandler?: (msg: InboundMessage) => void;
   private cachedHtml?: string;
 
@@ -52,58 +50,34 @@ export class WebAdapter implements ChannelAdapter {
     }
 
     this.server = createServer((req: IncomingMessage, res: ServerResponse) => {
-      if (req.url === "/" || req.url === "/index.html") {
+      const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+      const path = url.pathname;
+
+      // CORS headers
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+
+      if (req.method === "OPTIONS") {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+
+      if (path === "/" || path === "/index.html") {
         res.writeHead(200, { "Content-Type": "text/html" });
         res.end(this.cachedHtml);
-      } else if (req.url === "/health") {
+      } else if (path === "/health") {
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ status: "ok", clients: this.clients.size }));
+        res.end(JSON.stringify({ status: "ok", clients: this.sseClients.size }));
+      } else if (path === "/stream" && req.method === "GET") {
+        this.handleSSE(req, res);
+      } else if (path === "/message" && req.method === "POST") {
+        this.handleMessage(req, res);
       } else {
         res.writeHead(404);
         res.end("Not found");
       }
-    });
-
-    this.wss = new WebSocketServer({ server: this.server });
-
-    this.wss.on("connection", (ws: WebSocket) => {
-      const clientId = `web_${randomUUID().slice(0, 8)}`;
-      this.clients.set(clientId, { ws, id: clientId });
-      log.info(`Client connected: ${clientId}`);
-
-      ws.on("message", (data: Buffer) => {
-        try {
-          const parsed = JSON.parse(data.toString()) as { text?: string };
-          if (!parsed.text) return;
-
-          const msg: InboundMessage = {
-            id: `${clientId}_${Date.now()}`,
-            channel: "web",
-            channelId: clientId,
-            sender: { id: clientId, displayName: `Web User ${clientId}` },
-            text: parsed.text,
-            timestamp: Date.now(),
-            chatType: "direct",
-          };
-
-          this.onMessageHandler?.(msg);
-        } catch (err) {
-          log.error("Failed to parse WebSocket message", err);
-        }
-      });
-
-      ws.on("close", () => {
-        this.clients.delete(clientId);
-        log.info(`Client disconnected: ${clientId}`);
-      });
-
-      ws.on("error", (err: Error) => {
-        log.error(`WebSocket error for ${clientId}`, err);
-        this.clients.delete(clientId);
-      });
-
-      // Send welcome
-      ws.send(JSON.stringify({ type: "connected", clientId }));
     });
 
     return new Promise((resolve) => {
@@ -114,12 +88,93 @@ export class WebAdapter implements ChannelAdapter {
     });
   }
 
-  async stop(): Promise<void> {
-    for (const client of this.clients.values()) {
-      client.ws.close();
+  /** GET /stream — SSE connection. User identified by Authorization header or ?token= query param. */
+  private handleSSE(req: IncomingMessage, res: ServerResponse): void {
+    const userId = this.extractUserId(req);
+    if (!userId) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Missing Authorization header or ?token= query param" }));
+      return;
     }
-    this.clients.clear();
-    this.wss?.close();
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+
+    // Send initial connected event
+    res.write(`data: ${JSON.stringify({ type: "connected", userId })}\n\n`);
+
+    this.sseClients.set(userId, { res, userId });
+    log.info(`SSE client connected: ${userId}`);
+
+    req.on("close", () => {
+      this.sseClients.delete(userId);
+      log.info(`SSE client disconnected: ${userId}`);
+    });
+  }
+
+  /** POST /message — send a message. Body: { text, agentId? }. */
+  private handleMessage(req: IncomingMessage, res: ServerResponse): void {
+    const userId = this.extractUserId(req);
+    if (!userId) {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "Missing Authorization header or ?token= query param" }));
+      return;
+    }
+
+    let body = "";
+    req.on("data", (chunk: Buffer) => { body += chunk.toString(); });
+    req.on("end", () => {
+      try {
+        const parsed = JSON.parse(body) as { text?: string; agentId?: string };
+        if (!parsed.text) {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Missing 'text' field" }));
+          return;
+        }
+
+        const msg: InboundMessage = {
+          id: `web_${userId}_${Date.now()}`,
+          channel: "web",
+          channelId: userId,
+          sender: { id: userId },
+          text: parsed.text,
+          timestamp: Date.now(),
+          chatType: "direct",
+        };
+
+        this.onMessageHandler?.(msg);
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true }));
+      } catch {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid JSON" }));
+      }
+    });
+  }
+
+  /** Extract user ID from Authorization header (Bearer token) or ?token= query param. */
+  private extractUserId(req: IncomingMessage): string | null {
+    // Authorization: Bearer <userId or JWT>
+    const auth = req.headers.authorization;
+    if (auth?.startsWith("Bearer ")) {
+      return auth.slice(7).trim() || null;
+    }
+
+    // ?token=<userId>
+    const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
+    const token = url.searchParams.get("token");
+    return token || null;
+  }
+
+  async stop(): Promise<void> {
+    for (const client of this.sseClients.values()) {
+      client.res.end();
+    }
+    this.sseClients.clear();
 
     return new Promise((resolve) => {
       if (this.server) {
@@ -131,19 +186,19 @@ export class WebAdapter implements ChannelAdapter {
   }
 
   async send(target: ChannelTarget, message: OutboundMessage): Promise<SendResult> {
-    const client = this.clients.get(target.channelId);
-    if (!client || client.ws.readyState !== WebSocket.OPEN) {
+    const client = this.sseClients.get(target.channelId);
+    if (!client) {
       return { success: false, error: "Client not connected" };
     }
 
-    client.ws.send(JSON.stringify({ type: "message", text: message.text }));
+    client.res.write(`data: ${JSON.stringify({ type: "message", text: message.text })}\n\n`);
     return { success: true };
   }
 
   async sendTyping(target: ChannelTarget): Promise<void> {
-    const client = this.clients.get(target.channelId);
-    if (client && client.ws.readyState === WebSocket.OPEN) {
-      client.ws.send(JSON.stringify({ type: "typing" }));
+    const client = this.sseClients.get(target.channelId);
+    if (client) {
+      client.res.write(`data: ${JSON.stringify({ type: "typing" })}\n\n`);
     }
   }
 
@@ -183,7 +238,8 @@ export class WebAdapter implements ChannelAdapter {
 const messages = document.getElementById('messages');
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('send');
-let ws, typing;
+let eventSource, typing;
+const TOKEN = prompt('Enter your user ID or token:') || 'anonymous';
 
 function addMsg(text, cls) {
   if (typing) { typing.remove(); typing = null; }
@@ -195,24 +251,27 @@ function addMsg(text, cls) {
 }
 
 function connect() {
-  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  ws = new WebSocket(proto + '//' + location.host);
-  ws.onopen = () => addMsg('Connected', 'system');
-  ws.onclose = () => { addMsg('Disconnected. Reconnecting...', 'system'); setTimeout(connect, 2000); };
-  ws.onmessage = (e) => {
+  eventSource = new EventSource('/stream?token=' + encodeURIComponent(TOKEN));
+  eventSource.onopen = () => addMsg('Connected', 'system');
+  eventSource.onerror = () => { addMsg('Disconnected. Reconnecting...', 'system'); };
+  eventSource.onmessage = (e) => {
     const data = JSON.parse(e.data);
     if (data.type === 'message') addMsg(data.text, 'agent');
     else if (data.type === 'typing') {
       if (!typing) { typing = document.createElement('div'); typing.className = 'typing'; typing.textContent = 'Thinking...'; messages.appendChild(typing); messages.scrollTop = messages.scrollHeight; }
     }
-    else if (data.type === 'connected') addMsg('Session ready', 'system');
+    else if (data.type === 'connected') addMsg('Session ready (' + data.userId + ')', 'system');
   };
 }
 
 function send() {
   const text = input.value.trim();
-  if (!text || !ws || ws.readyState !== 1) return;
-  ws.send(JSON.stringify({ text }));
+  if (!text) return;
+  fetch('/message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+    body: JSON.stringify({ text })
+  });
   addMsg(text, 'user');
   input.value = '';
 }

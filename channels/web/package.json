@@ -18,11 +18,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "ws": "^8.18.0",
     "@harnessgate/core": "workspace:*"
   },
   "devDependencies": {
-    "@types/ws": "^8.5.0",
     "typescript": "^5.7.0"
   }
 }

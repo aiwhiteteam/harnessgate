@@ -1,26 +1,40 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { SessionMap, buildSessionKey, type SessionEntry } from "./session-map.js";
+import { MemorySessionStore, buildSessionKey, type SessionEntry } from "./session-map.js";
 
 describe("buildSessionKey", () => {
   it("builds a composite key", () => {
-    expect(buildSessionKey("telegram", "direct", "12345")).toBe("telegram:direct:12345");
+    expect(buildSessionKey({ channel: "telegram", chatType: "direct", channelId: "12345" }))
+      .toBe("telegram:direct:12345");
   });
 
   it("handles group chats", () => {
-    expect(buildSessionKey("discord", "group", "guild-99")).toBe("discord:group:guild-99");
+    expect(buildSessionKey({ channel: "discord", chatType: "group", channelId: "guild-99" }))
+      .toBe("discord:group:guild-99");
   });
 
   it("includes userId when provided", () => {
-    expect(buildSessionKey("telegram", "group", "chat-1", "user-42")).toBe("telegram:group:chat-1:user-42");
+    expect(buildSessionKey({ channel: "telegram", chatType: "direct", channelId: "chat-1", userId: "user-42" }))
+      .toBe("telegram:direct:chat-1:u:user-42");
   });
 
-  it("omits userId segment when undefined", () => {
-    expect(buildSessionKey("telegram", "direct", "12345", undefined)).toBe("telegram:direct:12345");
+  it("includes threadId when provided", () => {
+    expect(buildSessionKey({ channel: "slack", chatType: "thread", channelId: "ch1", threadId: "ts123" }))
+      .toBe("slack:thread:ch1:t:ts123");
+  });
+
+  it("includes agentId and sessionId when provided", () => {
+    expect(buildSessionKey({ channel: "web", chatType: "direct", channelId: "c1", userId: "u1", agentId: "agent_coding", sessionId: "conv_1" }))
+      .toBe("web:direct:c1:u:u1:a:agent_coding:s:conv_1");
+  });
+
+  it("omits undefined segments", () => {
+    expect(buildSessionKey({ channel: "telegram", chatType: "direct", channelId: "12345", userId: undefined }))
+      .toBe("telegram:direct:12345");
   });
 });
 
-describe("SessionMap", () => {
-  let map: SessionMap;
+describe("MemorySessionStore", () => {
+  let store: MemorySessionStore;
 
   function makeEntry(overrides: Partial<SessionEntry> = {}): SessionEntry {
     return {
@@ -35,79 +49,36 @@ describe("SessionMap", () => {
   }
 
   beforeEach(() => {
-    map = new SessionMap();
+    store = new MemorySessionStore();
   });
 
-  it("get returns undefined for missing key", () => {
-    expect(map.get("nonexistent")).toBeUndefined();
+  it("get returns null for missing key", async () => {
+    expect(await store.get("nonexistent")).toBeNull();
   });
 
-  it("set and get round-trip", () => {
+  it("set and get round-trip", async () => {
     const entry = makeEntry();
-    map.set(entry.key, entry);
-    expect(map.get(entry.key)).toBe(entry);
+    await store.set(entry.key, entry);
+    expect(await store.get(entry.key)).toBe(entry);
   });
 
-  it("delete removes entry", () => {
+  it("delete removes entry", async () => {
     const entry = makeEntry();
-    map.set(entry.key, entry);
-    expect(map.delete(entry.key)).toBe(true);
-    expect(map.get(entry.key)).toBeUndefined();
+    await store.set(entry.key, entry);
+    expect(await store.delete(entry.key)).toBe(true);
+    expect(await store.get(entry.key)).toBeNull();
   });
 
-  it("delete returns false for missing key", () => {
-    expect(map.delete("nonexistent")).toBe(false);
+  it("delete returns false for missing key", async () => {
+    expect(await store.delete("nonexistent")).toBe(false);
   });
 
-  it("findByProviderSession finds entry", () => {
-    const entry = makeEntry({ providerSessionId: "sesn_abc" });
-    map.set(entry.key, entry);
-    expect(map.findByProviderSession("sesn_abc")).toBe(entry);
-  });
-
-  it("findByProviderSession returns undefined if not found", () => {
-    expect(map.findByProviderSession("missing")).toBeUndefined();
-  });
-
-  it("touch updates lastActiveAt", () => {
+  it("touch updates lastActiveAt", async () => {
     const entry = makeEntry({ lastActiveAt: 1000 });
-    map.set(entry.key, entry);
-    map.touch(entry.key);
-    expect(entry.lastActiveAt).toBeGreaterThan(1000);
+    await store.set(entry.key, entry);
+    await store.touch(entry.key);
+    const updated = await store.get(entry.key);
+    expect(updated!.lastActiveAt).toBeGreaterThan(1000);
   });
 
-  it("list returns all entries", () => {
-    const e1 = makeEntry({ key: "a:direct:1", providerSessionId: "s1" });
-    const e2 = makeEntry({ key: "b:direct:2", providerSessionId: "s2" });
-    map.set(e1.key, e1);
-    map.set(e2.key, e2);
-    expect(map.list()).toHaveLength(2);
-  });
-
-  it("size returns count", () => {
-    expect(map.size).toBe(0);
-    map.set("k1", makeEntry({ key: "k1" }));
-    expect(map.size).toBe(1);
-  });
-
-  describe("prune", () => {
-    it("removes idle sessions and returns their entries", () => {
-      const old = makeEntry({ key: "old", lastActiveAt: Date.now() - 10_000 });
-      const recent = makeEntry({ key: "recent", lastActiveAt: Date.now() });
-      map.set(old.key, old);
-      map.set(recent.key, recent);
-
-      const pruned = map.prune(5_000);
-      expect(pruned).toHaveLength(1);
-      expect(pruned[0].key).toBe("old");
-      expect(map.get("old")).toBeUndefined();
-      expect(map.get("recent")).toBeDefined();
-    });
-
-    it("returns empty array when nothing to prune", () => {
-      const entry = makeEntry({ lastActiveAt: Date.now() });
-      map.set(entry.key, entry);
-      expect(map.prune(60_000)).toHaveLength(0);
-    });
-  });
 });

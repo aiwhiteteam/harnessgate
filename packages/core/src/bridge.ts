@@ -1,5 +1,4 @@
 import type { ChannelAdapter, ChannelTarget } from "./channel.js";
-import type { HarnessGateConfig } from "./config.js";
 import type { InboundMessage, OutboundMessage } from "./messages.js";
 import type {
   Provider,
@@ -8,11 +7,19 @@ import type {
   UserResolver,
   ResolvedUser,
 } from "./provider.js";
-import { SessionMap, buildSessionKey, type SessionMapKey } from "./session-map.js";
+import { MemorySessionStore, buildSessionKey, type SessionStore, type SessionMapKey } from "./session-map.js";
 import { StreamManager } from "./stream-manager.js";
 import { createLogger } from "./logger.js";
 
 const log = createLogger("bridge");
+
+/** Configuration passed to the Bridge constructor. */
+export interface BridgeConfig {
+  /** Provider config — passed through to provider.createSession() as providerConfig. */
+  provider: Record<string, unknown>;
+  /** Per-channel config — keyed by channel id, passed to channel.start(). */
+  channels?: Record<string, Record<string, unknown>>;
+}
 
 interface ActiveTurn {
   chunks: string[];
@@ -23,11 +30,10 @@ interface ActiveTurn {
 export class Bridge {
   private channels = new Map<string, ChannelAdapter>();
   private provider: Provider;
-  private sessionMap = new SessionMap();
+  private sessionStore: SessionStore;
   private streamManager = new StreamManager();
-  private config: HarnessGateConfig;
+  private config: BridgeConfig;
   private abortController = new AbortController();
-  private pruneInterval?: ReturnType<typeof setInterval>;
 
   /** Buffer of text chunks per session, flushed on idle. */
   private activeTurns = new Map<SessionMapKey, ActiveTurn>();
@@ -36,9 +42,15 @@ export class Bridge {
   /** Optional user resolver for auth and per-user routing. */
   private userResolver?: UserResolver;
 
-  constructor(provider: Provider, config: HarnessGateConfig) {
+  constructor(provider: Provider, config?: BridgeConfig) {
     this.provider = provider;
-    this.config = config;
+    this.config = config ?? { provider: {} };
+    this.sessionStore = new MemorySessionStore();
+  }
+
+  /** Swap the session store (SQLite, Postgres, Redis, etc.). */
+  setSessionStore(store: SessionStore): void {
+    this.sessionStore = store;
   }
 
   addChannel(adapter: ChannelAdapter): void {
@@ -66,7 +78,7 @@ export class Bridge {
     // Start all channels
     const startPromises = Array.from(this.channels.entries()).map(
       ([id, adapter]) => {
-        const channelConfig = this.config.channels[id] ?? {};
+        const channelConfig = this.config.channels?.[id] ?? {};
         return adapter
           .start({
             onMessage: (msg) => this.handleInbound(msg),
@@ -84,25 +96,11 @@ export class Bridge {
 
     await Promise.all(startPromises);
 
-    // Periodic session pruning
-    this.pruneInterval = setInterval(() => {
-      const pruned = this.sessionMap.prune(this.config.session.maxIdleMs);
-      const destroyPromises = pruned.map((entry) => {
-        this.streamManager.stopStream(entry.providerSessionId);
-        this.activeTurns.delete(entry.key);
-        return this.provider
-          .destroySession(entry.providerSessionId)
-          .catch(() => {});
-      });
-      Promise.all(destroyPromises).catch(() => {});
-    }, 60_000);
-
     log.info("Bridge started");
   }
 
   async stop(): Promise<void> {
     log.info("Stopping bridge...");
-    if (this.pruneInterval) clearInterval(this.pruneInterval);
     this.abortController.abort();
     this.streamManager.stopAll();
 
@@ -117,10 +115,10 @@ export class Bridge {
   }
 
   private async handleInbound(msg: InboundMessage): Promise<void> {
-    // Resolve user identity if resolver is configured
+    // Resolve user identity + agent routing
     let resolvedUser: ResolvedUser | undefined;
     if (this.userResolver) {
-      const result = await this.userResolver(msg.sender, msg.channel).catch(
+      const result = await this.userResolver(msg.sender, msg.channel, msg).catch(
         (err) => {
           log.error(`User resolver error for ${msg.sender.id}`, err);
           return null;
@@ -133,12 +131,27 @@ export class Bridge {
       resolvedUser = result;
     }
 
-    // Build session key — include userId for per-user sessions
+    // Build session key with correct scoping per chat type:
+    // - DM: per-user session (each user has their own context)
+    // - Group/Channel: shared session (everyone shares one context)
+    // - Thread: per-thread session (each thread is its own context)
     const userId = resolvedUser?.userId ?? msg.sender.id;
-    const sessionKey = buildSessionKey(msg.channel, msg.chatType, msg.channelId, userId);
+    const agentId = resolvedUser?.agentId;
+    const sessionId = resolvedUser?.sessionId;
+    const isDirect = msg.chatType === "direct";
+    const isThread = msg.chatType === "thread";
+    const sessionKey = buildSessionKey({
+      channel: msg.channel,
+      chatType: msg.chatType,
+      channelId: msg.channelId,
+      userId: isDirect ? userId : undefined,
+      threadId: isThread ? msg.threadId : undefined,
+      agentId,
+      sessionId,
+    });
     log.debug(`Inbound from ${sessionKey}: ${msg.text.slice(0, 100)}`);
 
-    let entry = this.sessionMap.get(sessionKey);
+    let entry = await this.sessionStore.get(sessionKey);
 
     // Create session if needed
     if (!entry) {
@@ -169,7 +182,7 @@ export class Bridge {
           createdAt: Date.now(),
           lastActiveAt: Date.now(),
         };
-        this.sessionMap.set(sessionKey, entry);
+        await this.sessionStore.set(sessionKey, entry);
         log.info(`New session: ${sessionKey} → ${session.id}`);
       } catch (err) {
         log.error(`Failed to create session for ${sessionKey}`, err);
@@ -177,13 +190,14 @@ export class Bridge {
       }
     }
 
-    this.sessionMap.touch(sessionKey);
+    await this.sessionStore.touch(sessionKey);
 
-    // Ensure stream is active
+    // Ensure stream is active — pass cached entry to avoid DB reads per event
+    const cachedEntry = entry;
     this.streamManager.ensureStream(
       entry.providerSessionId,
       this.provider,
-      (event) => this.handleProviderEvent(sessionKey, event),
+      (event) => this.handleProviderEvent(sessionKey, cachedEntry, event),
     );
 
     // Send typing indicator
@@ -209,11 +223,9 @@ export class Bridge {
 
   private async handleProviderEvent(
     sessionKey: SessionMapKey,
+    entry: import("./session-map.js").SessionEntry,
     event: ProviderEvent,
   ): Promise<void> {
-    // Notify external listeners (for raw/provider-specific event handling)
-    const entry = this.sessionMap.get(sessionKey);
-    if (!entry) return;
 
     for (const listener of this.eventListeners) {
       try {
@@ -298,8 +310,8 @@ export class Bridge {
     }
   }
 
-  getSessionMap(): SessionMap {
-    return this.sessionMap;
+  getSessionStore(): SessionStore {
+    return this.sessionStore;
   }
 }
 

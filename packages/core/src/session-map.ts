@@ -4,14 +4,21 @@ const log = createLogger("session-map");
 
 export type SessionMapKey = string;
 
-export function buildSessionKey(
-  channel: string,
-  chatType: string,
-  channelId: string,
-  userId?: string,
-): SessionMapKey {
-  const base = `${channel}:${chatType}:${channelId}`;
-  return userId ? `${base}:${userId}` : base;
+export function buildSessionKey(opts: {
+  channel: string;
+  chatType: string;
+  channelId: string;
+  threadId?: string;
+  userId?: string;
+  agentId?: string;
+  sessionId?: string;
+}): SessionMapKey {
+  const parts = [opts.channel, opts.chatType, opts.channelId];
+  if (opts.threadId) parts.push(`t:${opts.threadId}`);
+  if (opts.userId) parts.push(`u:${opts.userId}`);
+  if (opts.agentId) parts.push(`a:${opts.agentId}`);
+  if (opts.sessionId) parts.push(`s:${opts.sessionId}`);
+  return parts.join(":");
 }
 
 export interface SessionEntry {
@@ -25,57 +32,41 @@ export interface SessionEntry {
   lastActiveAt: number;
 }
 
-export class SessionMap {
+/**
+ * Interface for session persistence.
+ * Implement this to swap in your own database (Postgres, Redis, etc.).
+ */
+export interface SessionStore {
+  get(key: SessionMapKey): Promise<SessionEntry | null>;
+  set(key: SessionMapKey, entry: SessionEntry): Promise<void>;
+  delete(key: SessionMapKey): Promise<boolean>;
+  touch(key: SessionMapKey): Promise<void>;
+}
+
+/**
+ * In-memory session store. Default for development.
+ * Sessions are lost on restart.
+ */
+export class MemorySessionStore implements SessionStore {
   private sessions = new Map<SessionMapKey, SessionEntry>();
 
-  get(key: SessionMapKey): SessionEntry | undefined {
-    return this.sessions.get(key);
+  async get(key: SessionMapKey): Promise<SessionEntry | null> {
+    return this.sessions.get(key) ?? null;
   }
 
-  set(key: SessionMapKey, entry: SessionEntry): void {
+  async set(key: SessionMapKey, entry: SessionEntry): Promise<void> {
     this.sessions.set(key, entry);
     log.debug(`Session mapped: ${key} → ${entry.providerSessionId}`);
   }
 
-  delete(key: SessionMapKey): boolean {
+  async delete(key: SessionMapKey): Promise<boolean> {
     return this.sessions.delete(key);
   }
 
-  findByProviderSession(providerSessionId: string): SessionEntry | undefined {
-    for (const entry of this.sessions.values()) {
-      if (entry.providerSessionId === providerSessionId) return entry;
-    }
-    return undefined;
-  }
-
-  touch(key: SessionMapKey): void {
+  async touch(key: SessionMapKey): Promise<void> {
     const entry = this.sessions.get(key);
     if (entry) {
       entry.lastActiveAt = Date.now();
     }
-  }
-
-  list(): SessionEntry[] {
-    return Array.from(this.sessions.values());
-  }
-
-  /** Remove sessions idle longer than maxIdleMs. Returns pruned entries. */
-  prune(maxIdleMs: number): SessionEntry[] {
-    const now = Date.now();
-    const pruned: SessionEntry[] = [];
-    for (const [key, entry] of this.sessions) {
-      if (now - entry.lastActiveAt > maxIdleMs) {
-        this.sessions.delete(key);
-        pruned.push(entry);
-      }
-    }
-    if (pruned.length > 0) {
-      log.info(`Pruned ${pruned.length} idle sessions`);
-    }
-    return pruned;
-  }
-
-  get size(): number {
-    return this.sessions.size;
   }
 }
