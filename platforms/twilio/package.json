@@ -1,7 +1,7 @@
 {
   "name": "@harnessgate/platform-twilio",
   "version": "0.1.0",
-  "description": "Twilio (SMS + Voice) channel adapter for HarnessGate",
+  "description": "Twilio (SMS + Voice) platform adapter for HarnessGate",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",

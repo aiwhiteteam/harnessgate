@@ -1,7 +1,7 @@
 {
   "name": "@harnessgate/platform-telegram",
   "version": "0.1.0",
-  "description": "Telegram channel adapter for HarnessGate",
+  "description": "Telegram platform adapter for HarnessGate",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",

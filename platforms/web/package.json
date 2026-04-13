@@ -1,7 +1,7 @@
 {
   "name": "@harnessgate/platform-web",
   "version": "0.1.0",
-  "description": "Web UI channel adapter for HarnessGate",
+  "description": "Web UI platform adapter for HarnessGate",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",

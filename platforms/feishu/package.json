@@ -1,7 +1,7 @@
 {
   "name": "@harnessgate/platform-feishu",
   "version": "0.1.0",
-  "description": "Feishu/Lark channel adapter for HarnessGate",
+  "description": "Feishu/Lark platform adapter for HarnessGate",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",

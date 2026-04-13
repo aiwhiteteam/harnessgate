@@ -1,7 +1,7 @@
 {
   "name": "@harnessgate/platform-discord",
   "version": "0.1.0",
-  "description": "Discord channel adapter for HarnessGate",
+  "description": "Discord platform adapter for HarnessGate",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",

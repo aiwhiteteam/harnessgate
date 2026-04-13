@@ -33,7 +33,7 @@ export class DiscordAdapter implements PlatformAdapter {
   async start(ctx: PlatformContext): Promise<void> {
     const token = ctx.config.token as string;
     if (!token) {
-      throw new Error("Discord adapter requires token in channel config");
+      throw new Error("Discord adapter requires token in platform config");
     }
 
     this.client = new Client({
