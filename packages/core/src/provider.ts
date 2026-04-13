@@ -10,11 +10,10 @@ export interface ProviderSession {
 
 /**
  * Provider-specific session creation options.
- * Each provider defines its own required fields.
- * The bridge passes the raw `provider` config block from harnessgate.yaml.
+ * Each provider interprets providerConfig for its own needs.
  */
 export interface CreateSessionOpts {
-  /** Raw provider config from harnessgate.yaml (agentId, environmentId, assistantId, etc.) */
+  /** Provider-specific config (agentId, environmentId, baseUrl, etc.). */
   providerConfig: Record<string, unknown>;
   /** The user who initiated this session. */
   sender: Sender;
