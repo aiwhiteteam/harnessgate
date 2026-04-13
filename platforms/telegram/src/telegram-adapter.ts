@@ -1,11 +1,11 @@
 import { Bot } from "grammy";
 import type {
+  PlatformAdapter,
   PlatformCapabilities,
   PlatformContext,
   ChannelTarget,
   SendResult,
   OutboundMessage,
-  MultiInstanceAdapter,
 } from "@harnessgate/core";
 import { createLogger } from "@harnessgate/core";
 import { normalizeMessage } from "./normalize.js";
@@ -18,7 +18,7 @@ interface BotInstance {
   appId: string;
 }
 
-export class TelegramAdapter implements MultiInstanceAdapter {
+export class TelegramAdapter implements PlatformAdapter {
   readonly id = "telegram";
   readonly capabilities: PlatformCapabilities = {
     maxTextLength: 4096,
@@ -32,22 +32,22 @@ export class TelegramAdapter implements MultiInstanceAdapter {
   private bots = new Map<string, BotInstance>();
 
   /**
-   * Start a single bot from channel config (backwards-compatible).
-   * For multi-instance, use addBot() instead.
+   * Start a single bot from platform config (backwards-compatible).
+   * For multi-instance, use addApp() instead.
    */
   async start(ctx: PlatformContext): Promise<void> {
     const token = ctx.config.botToken as string;
     if (!token) {
-      throw new Error("Telegram adapter requires botToken in channel config");
+      throw new Error("Telegram adapter requires botToken in platform config");
     }
 
-    await this.addBot({ botToken: token }, ctx);
+    await this.addApp({ botToken: token }, ctx);
   }
 
-  async addBot(config: Record<string, unknown>, ctx: PlatformContext): Promise<string> {
+  async addApp(config: Record<string, unknown>, ctx: PlatformContext): Promise<string> {
     const token = config.botToken as string;
     if (!token) {
-      throw new Error("Telegram addBot requires botToken in config");
+      throw new Error("Telegram addApp requires botToken in config");
     }
 
     const bot = new Bot(token);
@@ -79,7 +79,7 @@ export class TelegramAdapter implements MultiInstanceAdapter {
     return appId;
   }
 
-  async removeBot(appId: string): Promise<void> {
+  async removeApp(appId: string): Promise<void> {
     const instance = this.bots.get(appId);
     if (!instance) return;
 
@@ -88,7 +88,7 @@ export class TelegramAdapter implements MultiInstanceAdapter {
     log.info(`Telegram bot stopped: appId=${appId}`);
   }
 
-  activeBots(): string[] {
+  activeApps(): string[] {
     return Array.from(this.bots.keys());
   }
 

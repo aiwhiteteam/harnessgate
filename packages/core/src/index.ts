@@ -12,13 +12,11 @@ export type {
 
 export type {
   PlatformAdapter,
-  MultiInstanceAdapter,
   PlatformContext,
   ChannelTarget,
   PlatformCapabilities,
   SendResult,
 } from "./platform.js";
-export { isMultiInstance } from "./platform.js";
 
 export type {
   InboundMessage,

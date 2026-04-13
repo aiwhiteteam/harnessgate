@@ -55,7 +55,7 @@ This means:
 
 - **Provider-agnostic** — Claude Managed Agents, any HTTP server, or bring your own
 - **12 platform adapters** — Telegram, Discord, Slack, WhatsApp, Web UI, Teams, Google Chat, Matrix, LINE, Feishu, Twilio, WhatsApp Business
-- **Multi-bot** — run multiple bot instances per platform, each mapped to a different agent via `MultiInstanceAdapter`
+- **Multi-app** — run multiple app instances per platform, each mapped to a different agent
 - **Session management** — automatic session creation, SQLite persistence, multi-turn conversations
 - **Buffer-then-send** — accumulates agent responses, sends as one message per turn
 - **Auto-split** — respects per-platform message length limits
@@ -243,12 +243,12 @@ See [`examples/with-supabase/main.ts`](examples/with-supabase/main.ts) for a com
 
 ## Multi-Bot / appId
 
-Platforms that implement `MultiInstanceAdapter` can run multiple bot instances simultaneously. Each bot connects to the platform and receives a platform-assigned `appId` — an opaque identifier that flows through every `InboundMessage` and `ChannelTarget`.
+Every platform adapter supports running multiple app instances simultaneously. Each app connects to the platform and receives a platform-assigned `appId` — an opaque identifier that flows through every `InboundMessage` and `ChannelTarget`.
 
 ```typescript
 // Add multiple Telegram bots at runtime
-const supportBotId = await bridge.addBot("telegram", { botToken: process.env.SUPPORT_BOT_TOKEN });
-const salesBotId = await bridge.addBot("telegram", { botToken: process.env.SALES_BOT_TOKEN });
+const supportBotId = await bridge.addApp("telegram", { botToken: process.env.SUPPORT_BOT_TOKEN });
+const salesBotId = await bridge.addApp("telegram", { botToken: process.env.SALES_BOT_TOKEN });
 
 // Route based on which bot received the message
 bridge.setUserResolver(async (sender, platform, message) => {
@@ -360,6 +360,9 @@ interface PlatformAdapter {
   stop(): Promise<void>;
   send(target: ChannelTarget, message: OutboundMessage): Promise<SendResult>;
   sendTyping?(target: ChannelTarget): Promise<void>;
+  addApp?(config: Record<string, unknown>, ctx: PlatformContext): Promise<string>;
+  removeApp?(appId: string): Promise<void>;
+  activeApps?(): string[];
 }
 ```
 

@@ -22,7 +22,7 @@ export interface InboundMessage {
   attachments?: Attachment[];
   timestamp: number;
   chatType: "direct" | "group" | "channel" | "thread";
-  /** Platform-assigned app/bot ID identifying which app received this message. Set by multi-instance adapters. */
+  /** Platform-assigned app ID identifying which app instance received this message. */
   appId?: string;
   raw?: unknown;
 }
