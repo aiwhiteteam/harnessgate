@@ -31,13 +31,13 @@ This means:
 - No competing agent loops, no bypassed infrastructure, no wasted abstractions
 
 ```
-[Telegram] [Discord] [Slack] [WhatsApp] [Web UI] [Teams] ...
-     |         |        |        |         |        |
-     +----+----+----+---+----+---+----+----+--------+
-          |         |        |        |
+[Telegram] [Discord] [Slack] [Web UI]
+     |         |        |        |
+     +----+----+----+---+--------+
+          |         |
      PlatformAdapter interface (per platform)
-          |         |        |        |
-          +----+----+----+---+--------+
+          |         |
+          +----+----+
                |
           Bridge (orchestrator)
           SessionMap + StreamManager
@@ -54,7 +54,7 @@ This means:
 ## Features
 
 - **Provider-agnostic** — Claude Managed Agents, any HTTP server, or bring your own
-- **12 platform adapters** — Telegram, Discord, Slack, WhatsApp, Web UI, Teams, Google Chat, Matrix, LINE, Feishu, Twilio, WhatsApp Business
+- **Platform adapters** — Telegram, Discord, Slack, Web UI (more coming)
 - **Multi-app** — run multiple app instances per platform, each mapped to a different agent
 - **Session management** — automatic session creation, SQLite persistence, multi-turn conversations
 - **Buffer-then-send** — accumulates agent responses, sends as one message per turn
@@ -89,7 +89,24 @@ bridge.addPlatform(new WebAdapter());
 await bridge.start();
 ```
 
-See [`examples/quickstart/`](examples/quickstart/) for a minimal starter or [`examples/with-supabase/`](examples/with-supabase/) for a production starter with Supabase auth and session persistence.
+See [`examples/demo-web/`](examples/demo-web/) for a minimal starter, [`examples/demo-telegram/`](examples/demo-telegram/) for a Telegram bot, or [`examples/with-supabase/`](examples/with-supabase/) for a production starter with Supabase auth and session persistence.
+
+### Run an example from the repo
+
+```bash
+git clone https://github.com/your-org/harnessgate.git
+cd harnessgate
+pnpm install
+
+cd examples/demo-telegram
+cp .env.example .env
+# Add ANTHROPIC_API_KEY in .env
+
+# Fill in botToken, agentId, environmentId in src/main.ts
+
+pnpm build
+node --env-file=.env dist/main.js
+```
 
 ## Provider Setup
 
@@ -247,8 +264,8 @@ Every platform adapter supports running multiple app instances simultaneously. E
 
 ```typescript
 // Add multiple Telegram bots at runtime
-const supportBotId = await bridge.addApp("telegram", { botToken: process.env.SUPPORT_BOT_TOKEN });
-const salesBotId = await bridge.addApp("telegram", { botToken: process.env.SALES_BOT_TOKEN });
+const supportBotId = await bridge.connect("telegram", { botToken: process.env.SUPPORT_BOT_TOKEN });
+const salesBotId = await bridge.connect("telegram", { botToken: process.env.SALES_BOT_TOKEN });
 
 // Route based on which bot received the message
 bridge.setUserResolver(async (sender, platform, message) => {
@@ -266,6 +283,7 @@ Each platform exposes a different identifier as `appId`. The adapter reads it fr
 | Telegram | `bot.botInfo.id` | `"123456789"` |
 | Discord | `client.application.id` | `"1098765432101234567"` |
 | Slack | `event.api_app_id` | `"A0123456789"` |
+| Web | N/A (single instance) | — |
 | WhatsApp | Phone number ID from Baileys | `"+14155238886"` |
 | WhatsApp Business | WABA phone number ID | `"106540352267890"` |
 | Teams | `activity.recipient.id` | `"28:abc123..."` |
@@ -274,7 +292,6 @@ Each platform exposes a different identifier as `appId`. The adapter reads it fr
 | LINE | Channel ID | `"1234567890"` |
 | Feishu/Lark | App ID from Open Platform | `"cli_abc123"` |
 | Twilio | Phone number SID | `"+15558675309"` |
-| Web | N/A (single instance) | — |
 
 The `appId` is included in session keys as `app:<appId>`, so each bot maintains separate conversation sessions even in the same channel.
 
@@ -312,15 +329,7 @@ harnessgate/
 │   ├── web/           # HTTP + SSE chat UI
 │   ├── telegram/      # grammY
 │   ├── discord/       # discord.js
-│   ├── slack/         # @slack/bolt
-│   ├── whatsapp/      # Baileys
-│   ├── teams/         # Bot Framework
-│   ├── google-chat/
-│   ├── matrix/        # matrix-js-sdk
-│   ├── line/          # @line/bot-sdk
-│   ├── feishu/        # Feishu/Lark
-│   ├── twilio/        # SMS + Voice
-│   └── whatsapp-business/  # Meta Cloud API
+│   └── slack/         # @slack/bolt
 └── providers/
     ├── claude/        # Claude Managed Agents API
     └── http/          # Generic HTTP — any server
@@ -360,9 +369,9 @@ interface PlatformAdapter {
   stop(): Promise<void>;
   send(target: ChannelTarget, message: OutboundMessage): Promise<SendResult>;
   sendTyping?(target: ChannelTarget): Promise<void>;
-  addApp?(config: Record<string, unknown>, ctx: PlatformContext): Promise<string>;
-  removeApp?(appId: string): Promise<void>;
-  activeApps?(): string[];
+  connect?(credentials: Record<string, unknown>, ctx: PlatformContext): Promise<string>;
+  disconnect?(appId: string): Promise<void>;
+  activeConnections?(): string[];
 }
 ```
 

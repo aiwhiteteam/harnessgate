@@ -35,10 +35,10 @@ export interface PlatformAdapter {
   /** Platform capabilities for message formatting. */
   readonly capabilities: PlatformCapabilities;
 
-  /** Start listening for inbound messages (single-app mode). */
+  /** Start listening for inbound messages (single-connection mode). */
   start(ctx: PlatformContext): Promise<void>;
 
-  /** Stop all app instances. */
+  /** Stop all active connections. */
   stop(): Promise<void>;
 
   /** Send a message to the platform. */
@@ -47,12 +47,12 @@ export interface PlatformAdapter {
   /** Send typing indicator. */
   sendTyping?(target: ChannelTarget): Promise<void>;
 
-  /** Add and start an app instance. Returns the platform-assigned appId after connecting. */
-  addApp?(config: Record<string, unknown>, ctx: PlatformContext): Promise<string>;
+  /** Open a new connection with the given credentials. Returns the platform-assigned appId. */
+  connect?(credentials: Record<string, unknown>, ctx: PlatformContext): Promise<string>;
 
-  /** Stop and remove an app instance by its platform-assigned appId. */
-  removeApp?(appId: string): Promise<void>;
+  /** Close a connection by its platform-assigned appId. */
+  disconnect?(appId: string): Promise<void>;
 
-  /** List currently active appIds. */
-  activeApps?(): string[];
+  /** List appIds of currently active connections. */
+  activeConnections?(): string[];
 }

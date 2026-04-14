@@ -1,7 +1,7 @@
 {
-  "name": "@harnessgate/platform-matrix",
+  "name": "@harnessgate/platform-whatsapp-business",
   "version": "0.1.0",
-  "description": "Matrix channel adapter for HarnessGate",
+  "description": "WhatsApp Business (Meta Cloud API) platform adapter for HarnessGate",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -18,7 +18,6 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "matrix-js-sdk": "^36.0.0",
     "@harnessgate/core": "workspace:*"
   },
   "devDependencies": {

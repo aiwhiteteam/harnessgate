@@ -30,7 +30,7 @@ export class SlackAdapter implements PlatformAdapter {
     const appToken = ctx.config.appToken as string;
 
     if (!botToken || !appToken) {
-      throw new Error("Slack adapter requires botToken and appToken in channel config");
+      throw new Error("Slack adapter requires botToken and appToken in platform config");
     }
 
     this.app = new App({

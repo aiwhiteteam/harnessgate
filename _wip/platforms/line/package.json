@@ -1,7 +1,7 @@
 {
-  "name": "@harnessgate/platform-whatsapp-business",
+  "name": "@harnessgate/platform-line",
   "version": "0.1.0",
-  "description": "WhatsApp Business (Meta Cloud API) channel adapter for HarnessGate",
+  "description": "LINE platform adapter for HarnessGate",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
@@ -18,6 +18,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@line/bot-sdk": "^9.7.0",
     "@harnessgate/core": "workspace:*"
   },
   "devDependencies": {

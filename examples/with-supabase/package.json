@@ -9,10 +9,10 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@harnessgate/core": "^0.1.0",
-    "@harnessgate/provider-claude": "^0.1.0",
-    "@harnessgate/platform-web": "^0.1.0",
-    "@harnessgate/platform-telegram": "^0.1.0",
+    "@harnessgate/core": "workspace:*",
+    "@harnessgate/provider-claude": "workspace:*",
+    "@harnessgate/platform-web": "workspace:*",
+    "@harnessgate/platform-telegram": "workspace:*",
     "@supabase/supabase-js": "^2.49.0"
   },
   "devDependencies": {

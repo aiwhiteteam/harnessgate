@@ -1,7 +1,7 @@
 {
-  "name": "@harnessgate/platform-feishu",
+  "name": "@harnessgate/platform-whatsapp",
   "version": "0.1.0",
-  "description": "Feishu/Lark channel adapter for HarnessGate",
+  "description": "WhatsApp platform adapter for HarnessGate",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
