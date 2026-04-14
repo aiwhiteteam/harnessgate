@@ -2,3 +2,4 @@ packages:
   - packages/*
   - platforms/*
   - providers/*
+  - examples/*

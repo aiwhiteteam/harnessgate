@@ -1,5 +1,5 @@
 {
-  "name": "harnessgate-telegram",
+  "name": "harnessgate-demo-web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,9 +9,9 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@harnessgate/core": "^0.1.0",
-    "@harnessgate/provider-claude": "^0.1.0",
-    "@harnessgate/platform-telegram": "^0.1.0"
+    "@harnessgate/core": "workspace:*",
+    "@harnessgate/provider-claude": "workspace:*",
+    "@harnessgate/platform-web": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

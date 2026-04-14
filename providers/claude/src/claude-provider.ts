@@ -134,6 +134,7 @@ export class ClaudeProvider implements Provider {
     const res = await fetch(url, {
       headers: {
         ...this._headers,
+        "anthropic-beta": "agent-api-2026-03-01",
         Accept: "text/event-stream",
       },
       signal,
@@ -222,6 +223,31 @@ export class ClaudeProvider implements Provider {
 
   private translateEvent(raw: { type: string }): ProviderEvent | null {
     switch (raw.type) {
+      case "agent": {
+        const event = raw as { content?: Array<{ type: string; text?: string; thinking?: string }> };
+        const blocks = event.content ?? [];
+        const text = blocks
+          .filter((b) => b.type === "text" && typeof b.text === "string")
+          .map((b) => b.text as string)
+          .join("");
+        if (text) return { type: "message", text };
+        const thinking = blocks
+          .filter((b) => b.type === "thinking" && typeof b.thinking === "string")
+          .map((b) => b.thinking as string)
+          .join("");
+        if (thinking) return { type: "thinking", text: thinking };
+        return null;
+      }
+
+      case "status_running":
+        return { type: "status", status: "running" };
+
+      case "status_idle":
+        return { type: "status", status: "idle" };
+
+      case "status_terminated":
+        return { type: "status", status: "error" };
+
       case "agent.message": {
         const event = raw as ClaudeAgentMessageEvent;
         const text = event.content
