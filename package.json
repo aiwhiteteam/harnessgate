@@ -1,22 +1,40 @@
 {
   "name": "harnessgate",
   "version": "0.1.0",
-  "private": true,
-  "description": "Universal gateway connecting AI agent harness runtimes to messaging platforms",
+  "description": "Universal gateway connecting AI agent runtimes to messaging platforms",
   "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./providers": "./dist/providers/index.js",
+    "./platforms": "./dist/platforms/index.js"
+  },
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=22.0.0"
   },
-  "packageManager": "pnpm@10.0.0",
   "scripts": {
-    "build": "pnpm -r build",
-    "dev": "pnpm -r --parallel dev",
-    "lint": "tsc --noEmit",
-    "clean": "pnpm -r clean",
+    "build": "tsc",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.90.0",
+    "grammy": "^1.35.0",
+    "discord.js": "^14.18.0",
+    "@slack/bolt": "^4.2.0",
+    "botbuilder": "^4.23.0"
+  },
+  "optionalDependencies": {
+    "better-sqlite3": "^11.7.0"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
     "@types/node": "^25.6.0",
     "typescript": "^5.7.0",
     "vitest": "^4.1.4"

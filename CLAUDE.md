@@ -2,7 +2,7 @@
 
 ## What is this project
 
-HarnessGate is a universal gateway that connects AI agent harness runtimes (Claude Managed Agents, any HTTP server, custom providers) to messaging platforms (Telegram, Discord, Slack, WhatsApp, Web UI, etc.).
+HarnessGate is a universal gateway that connects AI agent harness runtimes (Claude Managed Agents, any HTTP server, custom providers) to messaging platforms (Telegram, Discord, Slack, WhatsApp, Teams, Web UI).
 
 ## Architecture
 
@@ -11,11 +11,22 @@ Platforms (inbound)  →  Bridge (orchestrator)  →  Provider (outbound to agen
                         SessionMap + StreamManager
 ```
 
-- **Provider** (`packages/core/src/provider.ts`) — interface for agent runtimes. Required methods: `createSession`, `sendMessage`, `stream`, `destroySession`. Optional (capability-gated): `interrupt`, `confirmTool`, `submitToolResult`.
-- **PlatformAdapter** (`packages/core/src/platform.ts`) — interface for messaging platforms. Required: `start`, `stop`, `send`. Optional: `sendTyping`, `connect`, `disconnect`, `activeConnections`.
-- **Bridge** (`packages/core/src/bridge.ts`) — orchestrator connecting platforms to providers. Manages session mapping, stream lifecycle, message buffering, and text splitting. Supports `connect(platform, credentials)` and `disconnect(platform, appId)` for dynamic connection management.
-- **SessionStore** (`packages/core/src/session-map.ts`) — interface for session persistence. Maps session keys to provider session IDs. Built-in: `MemorySessionStore` (dev), `SqliteSessionStore` (production default). Swappable via `bridge.setSessionStore()`.
-- **StreamManager** (`packages/core/src/stream-manager.ts`) — maintains one SSE stream per active session with reconnection and event deduplication.
+- **Provider** (`src/provider.ts`) — interface for agent runtimes. Required methods: `createSession`, `sendMessage`, `stream`, `destroySession`. Optional (capability-gated): `interrupt`, `confirmTool`, `submitToolResult`.
+- **PlatformAdapter** (`src/platform.ts`) — interface for messaging platforms. Required: `start`, `stop`, `send`. Optional: `sendTyping`, `connect`, `disconnect`, `activeConnections`.
+- **Bridge** (`src/bridge.ts`) — orchestrator connecting platforms to providers. Manages session mapping, stream lifecycle, message buffering, and text splitting. Supports `connect(platform, credentials)` and `disconnect(platform, appId)` for dynamic connection management.
+- **SessionStore** (`src/session-map.ts`) — interface for session persistence. Maps session keys to provider session IDs. Built-in: `MemorySessionStore` (dev), `SqliteSessionStore` (production default). Swappable via `bridge.setSessionStore()`.
+- **StreamManager** (`src/stream-manager.ts`) — maintains one SSE stream per active session with reconnection and event deduplication.
+
+### Platform adapters
+
+| Adapter | File | Library | Max text |
+|---------|------|---------|----------|
+| Telegram | `src/platforms/telegram-adapter.ts` | grammY | 4096 |
+| Discord | `src/platforms/discord-adapter.ts` | discord.js | 2000 |
+| Slack | `src/platforms/slack-adapter.ts` | @slack/bolt | 4000 |
+| WhatsApp | `src/platforms/whatsapp-adapter.ts` | Cloud API (fetch) | 4096 |
+| Teams | `src/platforms/teams-adapter.ts` | botbuilder | 28000 |
+| Web | `src/platforms/web-adapter.ts` | Built-in HTTP | 100000 |
 
 ## Session scoping
 
@@ -43,25 +54,36 @@ Session key format: `platform:chatType:channelId[:app:appId][:t:threadId][:u:use
 | Telegram | `bot.botInfo.id` | `"123456789"` |
 | Discord | `client.application.id` | `"1098765432101234567"` |
 | Slack | `event.api_app_id` | `"A0123456789"` |
-| WhatsApp | Phone number ID from Baileys | `"+14155238886"` |
-| WhatsApp Business | WABA phone number ID | `"106540352267890"` |
+| WhatsApp | WABA phone number ID | `"106540352267890"` |
 | Teams | `activity.recipient.id` | `"28:abc123..."` |
-| Google Chat | Bot project number | `"projects/123456"` |
-| Matrix | Bot's MXID | `"@mybot:matrix.org"` |
-| LINE | Channel ID | `"1234567890"` |
-| Feishu/Lark | App ID from Open Platform | `"cli_abc123"` |
-| Twilio | Phone number SID | `"+15558675309"` |
 | Web | N/A (single instance) | — |
 
-## Monorepo layout
+## Project layout
 
 ```
-packages/       → core infrastructure (core)
-platforms/      → messaging platform adapters (web, telegram, discord, ...)
-providers/      → agent runtime backends (claude, http)
+src/
+├── index.ts                # Barrel exports
+├── bridge.ts               # Orchestrator
+├── messages.ts             # InboundMessage, OutboundMessage, ChannelTarget
+├── platform.ts             # PlatformAdapter interface
+├── provider.ts             # Provider interface
+├── session-map.ts          # SessionStore (Memory + SQLite)
+├── stream-manager.ts       # SSE stream lifecycle
+├── platforms/              # 6 platform adapters
+│   ├── index.ts
+│   ├── telegram-adapter.ts
+│   ├── discord-adapter.ts
+│   ├── slack-adapter.ts
+│   ├── whatsapp-adapter.ts
+│   ├── teams-adapter.ts
+│   └── web-adapter.ts
+└── providers/              # Agent runtime backends
+    ├── index.ts
+    ├── claude-provider.ts
+    └── http-provider.ts
+docs/                       # Platform setup guides (one per platform)
+examples/                   # Starter projects
 ```
-
-All packages use pnpm workspace (`workspace:*` references). Three workspace roots in `pnpm-workspace.yaml`: `packages/*`, `platforms/*`, `providers/*`.
 
 ## Provider types
 
@@ -92,8 +114,8 @@ pnpm test           # unit tests (vitest)
 - TypeScript strict mode, ESM (`"type": "module"`)
 - Kebab-case file names, PascalCase classes/interfaces, camelCase functions
 - `export type` for type-only exports in barrel files
-- Platform packages: `@harnessgate/platform-{name}` in `platforms/{name}/`
-- Provider packages: `@harnessgate/provider-{name}` in `providers/{name}/`
-- Each package has `src/index.ts` barrel, `tsconfig.json` extending root, `package.json` with `workspace:*` dep on core
 - Tests co-located with source: `*.test.ts` next to `*.ts`
+- Platform adapters: `src/platforms/{name}-adapter.ts`
+- Normalize tests: `src/platforms/{name}-normalize.test.ts`
 - Examples in `examples/` directory
+- Build system: pnpm, vitest for tests
