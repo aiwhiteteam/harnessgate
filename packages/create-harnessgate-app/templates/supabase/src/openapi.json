@@ -1,0 +1,525 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HarnessGate Admin API",
+    "description": "Manage apps, users, platform identities, agent access, and sessions.",
+    "version": "0.1.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:{{ADMIN_PORT}}",
+      "description": "Local admin server"
+    }
+  ],
+  "paths": {
+    "/api/apps": {
+      "get": {
+        "summary": "List all apps",
+        "operationId": "listApps",
+        "tags": ["Apps"],
+        "responses": {
+          "200": {
+            "description": "List of apps",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/App" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create app",
+        "description": "Register a bot instance that routes to a specific agent.",
+        "operationId": "createApp",
+        "tags": ["Apps"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateAppRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "App created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/App" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/apps/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "get": {
+        "summary": "Get app",
+        "operationId": "getApp",
+        "tags": ["Apps"],
+        "responses": {
+          "200": {
+            "description": "App details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/App" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "patch": {
+        "summary": "Update app",
+        "operationId": "updateApp",
+        "tags": ["Apps"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateAppRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "App updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/App" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "delete": {
+        "summary": "Deactivate app",
+        "operationId": "deactivateApp",
+        "tags": ["Apps"],
+        "responses": {
+          "200": {
+            "description": "App deactivated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/App" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "summary": "List all users",
+        "description": "Returns users with their platform identities and agent access grants.",
+        "operationId": "listUsers",
+        "tags": ["Users"],
+        "responses": {
+          "200": {
+            "description": "List of users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/UserDetail" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create user",
+        "operationId": "createUser",
+        "tags": ["Users"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateUserRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "get": {
+        "summary": "Get user",
+        "description": "Returns user with platform identities and agent access grants.",
+        "operationId": "getUser",
+        "tags": ["Users"],
+        "responses": {
+          "200": {
+            "description": "User details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserDetail" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "patch": {
+        "summary": "Update user",
+        "operationId": "updateUser",
+        "tags": ["Users"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateUserRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "delete": {
+        "summary": "Deactivate user",
+        "operationId": "deactivateUser",
+        "tags": ["Users"],
+        "responses": {
+          "200": {
+            "description": "User deactivated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/users/{id}/identities": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "post": {
+        "summary": "Link platform identity",
+        "description": "Associate a platform user (e.g. Telegram user ID) with an internal user.",
+        "operationId": "createIdentity",
+        "tags": ["Platform Identities"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateIdentityRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Identity linked",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PlatformIdentity" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/users/{id}/identities/{identityId}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+        { "name": "identityId", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "delete": {
+        "summary": "Unlink platform identity",
+        "operationId": "deleteIdentity",
+        "tags": ["Platform Identities"],
+        "responses": {
+          "200": {
+            "description": "Identity unlinked",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeletedResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/users/{id}/access": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+      ],
+      "post": {
+        "summary": "Grant agent access",
+        "description": "Allow a user to interact with a specific agent.",
+        "operationId": "grantAccess",
+        "tags": ["Access Control"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GrantAccessRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Access granted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/UserAgentAccess" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/users/{id}/access/{agentId}": {
+      "parameters": [
+        { "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } },
+        { "name": "agentId", "in": "path", "required": true, "schema": { "type": "string" } }
+      ],
+      "delete": {
+        "summary": "Revoke agent access",
+        "operationId": "revokeAccess",
+        "tags": ["Access Control"],
+        "responses": {
+          "200": {
+            "description": "Access revoked",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeletedResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/api/sessions": {
+      "get": {
+        "summary": "List sessions",
+        "description": "Returns active sessions ordered by last activity.",
+        "operationId": "listSessions",
+        "tags": ["Sessions"],
+        "responses": {
+          "200": {
+            "description": "List of sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Session" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions/{key}": {
+      "parameters": [
+        { "name": "key", "in": "path", "required": true, "schema": { "type": "string" } }
+      ],
+      "delete": {
+        "summary": "Destroy session",
+        "operationId": "deleteSession",
+        "tags": ["Sessions"],
+        "responses": {
+          "200": {
+            "description": "Session destroyed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeletedResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "App": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "platform": { "type": "string", "example": "telegram" },
+          "credentials": { "type": "object", "example": { "botToken": "123:ABC" } },
+          "app_id": { "type": "string", "nullable": true, "description": "Platform-assigned ID, set after connect" },
+          "agent_id": { "type": "string", "example": "agent_01XXXX" },
+          "environment_id": { "type": "string", "example": "env_01XXXX" },
+          "is_active": { "type": "boolean" }
+        }
+      },
+      "CreateAppRequest": {
+        "type": "object",
+        "required": ["platform", "agent_id", "environment_id"],
+        "properties": {
+          "platform": { "type": "string", "example": "telegram" },
+          "credentials": { "type": "object", "example": { "botToken": "123:ABC" } },
+          "agent_id": { "type": "string", "example": "agent_01XXXX" },
+          "environment_id": { "type": "string", "example": "env_01XXXX" }
+        }
+      },
+      "UpdateAppRequest": {
+        "type": "object",
+        "properties": {
+          "credentials": { "type": "object" },
+          "agent_id": { "type": "string" },
+          "environment_id": { "type": "string" },
+          "is_active": { "type": "boolean" }
+        }
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "is_active": { "type": "boolean" }
+        }
+      },
+      "UserDetail": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "is_active": { "type": "boolean" },
+          "platform_identities": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/PlatformIdentity" }
+          },
+          "user_agent_access": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/UserAgentAccess" }
+          }
+        }
+      },
+      "CreateUserRequest": {
+        "type": "object",
+        "properties": {
+          "is_active": { "type": "boolean", "default": true }
+        }
+      },
+      "UpdateUserRequest": {
+        "type": "object",
+        "properties": {
+          "is_active": { "type": "boolean" }
+        }
+      },
+      "PlatformIdentity": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "user_id": { "type": "string", "format": "uuid" },
+          "platform": { "type": "string", "example": "telegram" },
+          "platform_id": { "type": "string", "example": "123456789" }
+        }
+      },
+      "CreateIdentityRequest": {
+        "type": "object",
+        "required": ["platform", "platform_id"],
+        "properties": {
+          "platform": { "type": "string", "example": "telegram" },
+          "platform_id": { "type": "string", "example": "123456789" }
+        }
+      },
+      "UserAgentAccess": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "user_id": { "type": "string", "format": "uuid" },
+          "agent_id": { "type": "string", "example": "agent_01XXXX" }
+        }
+      },
+      "GrantAccessRequest": {
+        "type": "object",
+        "required": ["agent_id"],
+        "properties": {
+          "agent_id": { "type": "string", "example": "agent_01XXXX" }
+        }
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "key": { "type": "string" },
+          "provider_session_id": { "type": "string" },
+          "platform": { "type": "string" },
+          "channel_id": { "type": "string" },
+          "thread_id": { "type": "string", "nullable": true },
+          "user_id": { "type": "string", "nullable": true },
+          "app_id": { "type": "string", "nullable": true },
+          "created_at": { "type": "integer", "description": "Unix timestamp in ms" },
+          "last_active_at": { "type": "integer", "description": "Unix timestamp in ms" }
+        }
+      },
+      "DeletedResponse": {
+        "type": "object",
+        "properties": {
+          "deleted": { "type": "boolean", "example": true }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Set ADMIN_API_KEY in .env. Pass as: Authorization: Bearer <key>. If ADMIN_API_KEY is empty, auth is disabled (dev mode)."
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Error response",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    { "bearerAuth": [] }
+  ],
+  "tags": [
+    { "name": "Apps", "description": "Bot instances that route to specific agents" },
+    { "name": "Users", "description": "Internal user records" },
+    { "name": "Platform Identities", "description": "Link platform users to internal users" },
+    { "name": "Access Control", "description": "Control which users can access which agents" },
+    { "name": "Sessions", "description": "Active conversation sessions" }
+  ]
+}

@@ -31,9 +31,9 @@ This means:
 - No competing agent loops, no bypassed infrastructure, no wasted abstractions
 
 ```
-[Telegram] [Discord] [Slack] [Web UI]
-     |         |        |        |
-     +----+----+----+---+--------+
+[Telegram] [Discord] [Slack] [WhatsApp] [Teams] [Web UI]
+     |         |        |       |          |       |
+     +----+----+----+---+-------+----------+------+
           |         |
      PlatformAdapter interface (per platform)
           |         |
@@ -54,7 +54,7 @@ This means:
 ## Features
 
 - **Provider-agnostic** — Claude Managed Agents, any HTTP server, or bring your own
-- **Platform adapters** — Telegram, Discord, Slack, Web UI (more coming)
+- **Platform adapters** — Telegram, Discord, Slack, WhatsApp, Teams, Web UI
 - **Multi-app** — run multiple app instances per platform, each mapped to a different agent
 - **Session management** — automatic session creation, SQLite persistence, multi-turn conversations
 - **Buffer-then-send** — accumulates agent responses, sends as one message per turn
@@ -283,15 +283,9 @@ Each platform exposes a different identifier as `appId`. The adapter reads it fr
 | Telegram | `bot.botInfo.id` | `"123456789"` |
 | Discord | `client.application.id` | `"1098765432101234567"` |
 | Slack | `event.api_app_id` | `"A0123456789"` |
-| Web | N/A (single instance) | — |
-| WhatsApp | Phone number ID from Baileys | `"+14155238886"` |
-| WhatsApp Business | WABA phone number ID | `"106540352267890"` |
+| WhatsApp | WABA phone number ID | `"106540352267890"` |
 | Teams | `activity.recipient.id` | `"28:abc123..."` |
-| Google Chat | Bot project number | `"projects/123456"` |
-| Matrix | Bot's MXID | `"@mybot:matrix.org"` |
-| LINE | Channel ID | `"1234567890"` |
-| Feishu/Lark | App ID from Open Platform | `"cli_abc123"` |
-| Twilio | Phone number SID | `"+15558675309"` |
+| Web | N/A (single instance) | — |
 
 The `appId` is included in session keys as `app:<appId>`, so each bot maintains separate conversation sessions even in the same channel.
 
@@ -312,6 +306,17 @@ platforms:
     enabled: false
     botToken: ${SLACK_BOT_TOKEN}
     appToken: ${SLACK_APP_TOKEN}
+  whatsapp:
+    enabled: false
+    phoneNumberId: ${WHATSAPP_PHONE_NUMBER_ID}
+    accessToken: ${WHATSAPP_ACCESS_TOKEN}
+    verifyToken: ${WHATSAPP_VERIFY_TOKEN}
+    webhookPort: 8080
+  teams:
+    enabled: false
+    appId: ${TEAMS_APP_ID}
+    appPassword: ${TEAMS_APP_PASSWORD}
+    webhookPort: 3978
 
 logging:
   level: info
@@ -319,20 +324,40 @@ logging:
 
 Environment variables are interpolated via `${VAR}` syntax.
 
+## Platform Setup Guides
+
+Detailed setup instructions for each platform, including SaaS multi-tenant distribution:
+
+| Platform | Guide | Library |
+|----------|-------|---------|
+| Telegram | [`docs/setup-telegram.md`](docs/setup-telegram.md) | grammY |
+| Discord | [`docs/setup-discord.md`](docs/setup-discord.md) | discord.js |
+| Slack | [`docs/setup-slack.md`](docs/setup-slack.md) | @slack/bolt |
+| WhatsApp | [`docs/setup-whatsapp.md`](docs/setup-whatsapp.md) | Cloud API (fetch) |
+| Teams | [`docs/setup-teams.md`](docs/setup-teams.md) | botbuilder |
+| Web | [`docs/setup-web.md`](docs/setup-web.md) | Built-in HTTP |
+
 ## Project Structure
 
 ```
 harnessgate/
-├── packages/
-│   └── core/          # Provider/Platform interfaces, Bridge, SessionStore, StreamManager
-├── platforms/
-│   ├── web/           # HTTP + SSE chat UI
-│   ├── telegram/      # grammY
-│   ├── discord/       # discord.js
-│   └── slack/         # @slack/bolt
-└── providers/
-    ├── claude/        # Claude Managed Agents API
-    └── http/          # Generic HTTP — any server
+├── src/
+│   ├── index.ts                # Barrel exports
+│   ├── bridge.ts               # Orchestrator
+│   ├── session-map.ts          # Session persistence
+│   ├── stream-manager.ts       # SSE stream lifecycle
+│   ├── platforms/
+│   │   ├── telegram-adapter.ts # grammY
+│   │   ├── discord-adapter.ts  # discord.js
+│   │   ├── slack-adapter.ts    # @slack/bolt
+│   │   ├── whatsapp-adapter.ts # Cloud API (fetch)
+│   │   ├── teams-adapter.ts    # Bot Framework SDK
+│   │   └── web-adapter.ts      # Built-in HTTP + SSE
+│   └── providers/
+│       ├── claude-provider.ts  # Claude Managed Agents
+│       └── http-provider.ts    # Generic HTTP
+├── docs/                       # Platform setup guides
+└── examples/                   # Starter projects
 ```
 
 ## Extending HarnessGate
