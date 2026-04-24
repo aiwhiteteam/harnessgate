@@ -100,7 +100,8 @@ cd examples/demo-telegram
 cp .env.example .env
 # Add ANTHROPIC_API_KEY in .env
 
-# Fill in botToken, agentId, environmentId in src/main.ts
+# Fill in botToken in src/main.ts
+# Implement your agentId/environmentId lookup in the user resolver
 
 pnpm build
 node --env-file=.env dist/main.js
@@ -116,11 +117,19 @@ HarnessGate supports three ways to connect an agent runtime:
 provider:
   type: claude
   apiKey: ${ANTHROPIC_API_KEY}
-  agentId: agent_01XXXX
-  environmentId: env_01XXXX
 ```
 
 Connects to [Claude Managed Agents](https://docs.anthropic.com/en/docs/managed-agents/overview). Full support for streaming, tool confirmation, custom tools, extended thinking, and multi-agent threads.
+
+For Claude, `agentId` and `environmentId` come from your `UserResolver`, not static provider config:
+
+```typescript
+bridge.setUserResolver(async (sender) => ({
+  userId: sender.id,
+  agentId: "agent_01XXXX",
+  environmentId: "env_01XXXX",
+}));
+```
 
 ### 2. HTTP — any server
 
@@ -225,6 +234,8 @@ bridge.setUserResolver(async (sender, platform, message) => {
 
 Return `null` to reject. When no resolver is set, all users are allowed with their platform ID as the user ID.
 
+Claude requires the resolver to return both `agentId` and `environmentId` for session creation.
+
 ## Session Management
 
 Each conversation context gets its own Claude session:
@@ -268,7 +279,8 @@ const salesBotId = await bridge.connect("telegram", { botToken: process.env.SALE
 // Route based on which bot received the message
 bridge.setUserResolver(async (sender, platform, message) => {
   const agentId = await db.getAgentForBot(message.appId);
-  return { userId: sender.id, agentId, environmentId: "env_01XXXX" };
+  const environmentId = await db.getEnvironmentForBot(message.appId);
+  return { userId: sender.id, agentId, environmentId };
 });
 ```
 
