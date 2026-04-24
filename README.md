@@ -64,13 +64,11 @@ This means:
 ## Quick Start
 
 ```bash
-npm install @harnessgate/core @harnessgate/provider-claude @harnessgate/platform-web
+npm install harnessgate
 ```
 
 ```typescript
-import { Bridge } from "@harnessgate/core";
-import { ClaudeProvider } from "@harnessgate/provider-claude";
-import { WebAdapter } from "@harnessgate/platform-web";
+import { Bridge, ClaudeProvider, WebAdapter } from "harnessgate";
 
 const provider = new ClaudeProvider(process.env.ANTHROPIC_API_KEY!);
 const bridge = new Bridge(provider, {
@@ -185,7 +183,7 @@ provider:
 The package/file must default-export a class implementing the `Provider` interface:
 
 ```typescript
-import type { Provider } from "@harnessgate/core";
+import type { Provider } from "harnessgate";
 
 export default class MyProvider implements Provider {
   readonly id = "my-provider";
