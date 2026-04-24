@@ -41,13 +41,12 @@ export class ClaudeProvider implements Provider {
   // -- Session lifecycle ----------------------------------------------------
 
   async createSession(opts: CreateSessionOpts): Promise<ProviderSession> {
-    const config = opts.providerConfig;
-    const agentId = config.agentId as string;
-    const environmentId = config.environmentId as string;
+    const agentId = opts.agentId;
+    const environmentId = opts.environmentId;
 
     if (!agentId || !environmentId) {
       throw new Error(
-        "Claude provider requires agentId and environmentId in provider config",
+        "Claude provider requires agentId and environmentId from the user resolver",
       );
     }
 
