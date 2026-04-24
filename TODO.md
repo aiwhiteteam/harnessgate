@@ -2,14 +2,16 @@
 
 ## Done
 
-- Core: Provider interface, ChannelAdapter interface, Bridge orchestrator
+- Core: Provider interface, PlatformAdapter interface, Bridge orchestrator
 - Providers: Claude Managed Agents, HTTP (generic)
-- Channels: Web UI (HTTP+SSE), Telegram, Discord, Slack (+ 8 scaffolded)
+- Platforms: Telegram, Discord, Slack, WhatsApp (Cloud API), Teams (Bot Framework), Web UI
 - User auth: UserResolver hook, per-user agent routing, per-conversation session scoping
 - Session management: SQLite default, swappable SessionStore interface
-- Examples: quickstart, with-supabase (runnable starters)
-- Tests: 26 unit tests (session-map, bridge, logger, stream-manager)
+- Multi-instance: connect/disconnect multiple bots per platform at runtime
+- Examples: demo-web, demo-telegram (runnable starters), with-supabase
+- Tests: 64 unit tests (session-map, bridge, logger, stream-manager, platform normalize tests)
 - CI: GitHub Actions (typecheck + build)
+- Docs: Platform setup guides for all 6 platforms (including SaaS distribution)
 
 ## Up Next
 
@@ -20,13 +22,10 @@
 ### Soul files (per-agent personas)
 Markdown files that define agent personality. HarnessGate reads them and creates Claude agents with those system prompts. Per-channel or per-user agent assignment. Removes the need for users to pre-create agents via the Anthropic API.
 
-### Remaining channel adapters (good first issues)
+### More platform adapters
 
-| Channel | Library | Difficulty |
-|---------|---------|------------|
-| WhatsApp | Baileys | Medium |
-| WhatsApp Business | Meta Cloud API | Medium |
-| Microsoft Teams | botbuilder | Medium |
+| Platform | Library | Difficulty |
+|----------|---------|------------|
 | Google Chat | Google Chat API | Medium |
 | Matrix | matrix-js-sdk | Easy |
 | LINE | @line/bot-sdk | Easy |
@@ -34,20 +33,18 @@ Markdown files that define agent personality. HarnessGate reads them and creates
 | Twilio (SMS) | twilio | Easy |
 
 ### Testing
-- Bridge integration test (mock provider + mock channel, verify end-to-end flow)
+- Bridge integration test (mock provider + mock platform, verify end-to-end flow)
 - Webhook resolver test (mock HTTP server)
-- Channel adapter tests (mock bot libraries)
 
 ### Infrastructure
 - Docker Compose for local dev
 - Dockerfile for production
 - Health check endpoint
-- Session persistence (DB-backed session store, survive restarts)
+- Per-platform rate limiting
 
 ### Future providers
 - OpenAI Assistants API
 - Google Gemini
-- When those platforms release managed agent APIs
 
 ### Docs site
 - When README exceeds ~500 lines or users request it
