@@ -190,19 +190,12 @@ export class Bridge {
     // Create session if needed
     if (!entry) {
       try {
-        // Build provider config, applying per-user overrides
-        const providerConfig = { ...this.config.provider };
-        if (resolvedUser?.agentId) {
-          providerConfig.agentId = resolvedUser.agentId;
-        }
-        if (resolvedUser?.environmentId) {
-          providerConfig.environmentId = resolvedUser.environmentId;
-        }
-
         const session = await this.provider.createSession({
-          providerConfig,
+          providerConfig: { ...this.config.provider },
           sender: msg.sender,
           userId: resolvedUser?.userId,
+          agentId: resolvedUser?.agentId,
+          environmentId: resolvedUser?.environmentId,
           extra: resolvedUser?.metadata,
         });
 

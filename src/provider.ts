@@ -13,12 +13,16 @@ export interface ProviderSession {
  * Each provider interprets providerConfig for its own needs.
  */
 export interface CreateSessionOpts {
-  /** Provider-specific config (agentId, environmentId, baseUrl, etc.). */
+  /** Provider-specific config (baseUrl, headers, etc.). */
   providerConfig: Record<string, unknown>;
   /** The user who initiated this session. */
   sender: Sender;
   /** Resolved internal user ID (from UserResolver). */
   userId?: string;
+  /** The provider-specific agent to route this session to. */
+  agentId?: string;
+  /** The provider-specific environment to create this session in. */
+  environmentId?: string;
   /** Optional system prompt override for this session. */
   systemPrompt?: string;
   /** Optional provider-specific session options (vault_ids, agent version, etc.) */
@@ -34,7 +38,7 @@ export interface CreateSessionOpts {
 export interface ResolvedUser {
   /** Your internal user ID. */
   userId: string;
-  /** Which agent handles this message. Falls back to config default if omitted. */
+  /** Which agent handles this message. */
   agentId?: string;
   /** Conversation ID for multiple chats with the same agent. Defaults to "default". */
   sessionId?: string;

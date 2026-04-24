@@ -7,10 +7,39 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
-    ".": "./dist/index.js",
-    "./providers": "./dist/providers/index.js",
-    "./platforms": "./dist/platforms/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./providers": {
+      "types": "./dist/providers/index.d.ts",
+      "default": "./dist/providers/index.js"
+    },
+    "./platforms": {
+      "types": "./dist/platforms/index.d.ts",
+      "default": "./dist/platforms/index.js"
+    }
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aiwhiteteam/harnessgate.git"
+  },
+  "homepage": "https://github.com/aiwhiteteam/harnessgate#readme",
+  "bugs": {
+    "url": "https://github.com/aiwhiteteam/harnessgate/issues"
+  },
+  "keywords": [
+    "claude",
+    "anthropic",
+    "ai-agents",
+    "chatbot",
+    "telegram",
+    "discord",
+    "slack",
+    "whatsapp",
+    "teams",
+    "gateway"
+  ],
   "files": [
     "dist"
   ],
@@ -22,7 +51,8 @@
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "pnpm build && pnpm test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
