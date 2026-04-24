@@ -68,12 +68,12 @@ npm install harnessgate
 ```
 
 ```typescript
-import { Bridge, ClaudeProvider, WebAdapter } from "harnessgate";
+import { Bridge, ClaudeProvider, TelegramAdapter } from "harnessgate";
 
 const provider = new ClaudeProvider(process.env.ANTHROPIC_API_KEY!);
 const bridge = new Bridge(provider, {
   provider: { type: "claude" },
-  platforms: { web: { enabled: true, port: 3000 } },
+  platforms: { telegram: { botToken: process.env.TELEGRAM_BOT_TOKEN! } },
 });
 
 // Route users to agents (agentId + environmentId from your DB)
@@ -83,7 +83,7 @@ bridge.setUserResolver(async (sender) => ({
   environmentId: "env_01XXXX",
 }));
 
-bridge.addPlatform(new WebAdapter());
+bridge.addPlatform(new TelegramAdapter());
 await bridge.start();
 ```
 
