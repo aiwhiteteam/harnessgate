@@ -107,166 +107,6 @@ pnpm build
 node --env-file=.env dist/main.js
 ```
 
-## Provider Setup
-
-HarnessGate supports three ways to connect an agent runtime:
-
-### 1. Claude Managed Agents
-
-```yaml
-provider:
-  type: claude
-  apiKey: ${ANTHROPIC_API_KEY}
-```
-
-Connects to [Claude Managed Agents](https://docs.anthropic.com/en/docs/managed-agents/overview). Full support for streaming, tool confirmation, custom tools, extended thinking, and multi-agent threads.
-
-For Claude, `agentId` and `environmentId` come from your `UserResolver`, not static provider config:
-
-```typescript
-bridge.setUserResolver(async (sender) => ({
-  userId: sender.id,
-  agentId: "agent_01XXXX",
-  environmentId: "env_01XXXX",
-}));
-```
-
-### 2. HTTP — any server
-
-```yaml
-provider:
-  type: http
-  baseUrl: http://localhost:8080
-  headers:
-    Authorization: Bearer ${MY_TOKEN}
-```
-
-Connects to **any** HTTP server that implements these endpoints:
-
-| Endpoint | Request | Response |
-|----------|---------|----------|
-| `POST /sessions` | `{ systemPrompt? }` | `{ id: "session-123" }` |
-| `POST /sessions/{id}/message` | `{ message: "hello", sessionId: "..." }` | `200 OK` |
-| `GET /sessions/{id}/stream` | SSE stream | `data: {"type": "message", "text": "..."}` |
-| `DELETE /sessions/{id}` | — | `200 OK` |
-
-Your server can be written in any language. SSE events can use either format:
-
-```
-# HarnessGate-native format (recommended)
-data: {"type": "message", "text": "Hello!"}
-data: {"type": "status", "status": "idle"}
-
-# Simple format (auto-detected)
-data: {"response": "Hello!"}
-data: {"text": "Hello!"}
-```
-
-Custom endpoint paths:
-
-```yaml
-provider:
-  type: http
-  baseUrl: http://localhost:8080
-  endpoints:
-    createSession: POST /api/conversations
-    sendMessage: POST /api/conversations/{sessionId}/chat
-    stream: GET /api/conversations/{sessionId}/events
-    destroySession: DELETE /api/conversations/{sessionId}
-```
-
-### 3. Custom provider — npm package or local file
-
-```yaml
-provider:
-  type: "@my-org/my-langgraph-provider"    # npm package
-  apiKey: xxx
-
-# or
-
-provider:
-  type: "./my-provider.js"                  # local file
-  apiKey: xxx
-```
-
-The package/file must default-export a class implementing the `Provider` interface:
-
-```typescript
-import type { Provider } from "harnessgate";
-
-export default class MyProvider implements Provider {
-  readonly id = "my-provider";
-  readonly capabilities = {
-    interrupt: false,
-    toolConfirmation: false,
-    customTools: false,
-    thinking: false,
-  };
-
-  constructor(config: Record<string, unknown>) {
-    // config contains everything from the provider block in YAML
-  }
-
-  async createSession(opts) { /* ... */ }
-  async sendMessage(sessionId, message) { /* ... */ }
-  async *stream(sessionId, signal) { /* ... */ }
-  async destroySession(sessionId) { /* ... */ }
-}
-```
-
-## User Auth
-
-HarnessGate supports per-user access control and agent routing via a `UserResolver`:
-
-```typescript
-bridge.setUserResolver(async (sender, platform, message) => {
-  const user = await db.findUser(platform, sender.id);
-  if (!user?.isActive) return null; // reject
-
-  return {
-    userId: user.id,
-    agentId: user.agentId,         // which agent template
-    environmentId: user.envId,     // which environment
-    metadata: { plan: user.plan }, // passed to provider session
-  };
-});
-```
-
-Return `null` to reject. When no resolver is set, all users are allowed with their platform ID as the user ID.
-
-Claude requires the resolver to return both `agentId` and `environmentId` for session creation.
-
-## Session Management
-
-Each conversation context gets its own Claude session:
-
-| Context | Session scope | Example key |
-|---------|--------------|-------------|
-| DM | Per user | `telegram:direct:123:u:user99` |
-| Group/Channel | Shared (all users) | `slack:group:ch1` |
-| Thread | Per thread | `discord:thread:ch1:t:thread99` |
-
-Sessions are persisted to **SQLite by default** (survives restarts). Configurable:
-
-```yaml
-session:
-  store: sqlite               # "sqlite" (default) or "memory"
-  path: ./harnessgate.db      # SQLite file path (only for sqlite)
-```
-
-For custom stores (Supabase, Postgres, Redis), use the library mode:
-
-```typescript
-bridge.setSessionStore({
-  async get(key) { /* query your DB */ },
-  async set(key, entry) { /* upsert */ },
-  async delete(key) { /* delete */ },
-  async touch(key) { /* update lastActiveAt */ },
-});
-```
-
-See [`examples/with-supabase/main.ts`](examples/with-supabase/main.ts) for a complete example with Supabase for both auth and session persistence.
-
 ## Multi-Bot / appId
 
 Every platform adapter supports running multiple app instances simultaneously. Each app connects to the platform and receives a platform-assigned `appId` — an opaque identifier that flows through every `InboundMessage` and `ChannelTarget`.
@@ -299,40 +139,245 @@ Each platform exposes a different identifier as `appId`. The adapter reads it fr
 
 The `appId` is included in session keys as `app:<appId>`, so each bot maintains separate conversation sessions even in the same channel.
 
-## Platform Configuration
+## Session Management
 
-```yaml
-platforms:
-  web:
-    enabled: true
-    port: 3000
-  telegram:
-    enabled: false
-    botToken: ${TELEGRAM_BOT_TOKEN}
-  discord:
-    enabled: false
-    token: ${DISCORD_BOT_TOKEN}
-  slack:
-    enabled: false
-    botToken: ${SLACK_BOT_TOKEN}
-    appToken: ${SLACK_APP_TOKEN}
-  whatsapp:
-    enabled: false
-    phoneNumberId: ${WHATSAPP_PHONE_NUMBER_ID}
-    accessToken: ${WHATSAPP_ACCESS_TOKEN}
-    verifyToken: ${WHATSAPP_VERIFY_TOKEN}
-    webhookPort: 8080
-  teams:
-    enabled: false
-    appId: ${TEAMS_APP_ID}
-    appPassword: ${TEAMS_APP_PASSWORD}
-    webhookPort: 3978
+Each conversation context gets its own Claude session:
 
-logging:
-  level: info
+| Context | Session scope | Example key |
+|---------|--------------|-------------|
+| DM | Per user | `telegram:direct:123:u:user99` |
+| Group/Channel | Shared (all users) | `slack:group:ch1` |
+| Thread | Per thread | `discord:thread:ch1:t:thread99` |
+
+Sessions persist to SQLite when you wire one in (survives restarts), otherwise the bridge falls back to in-memory storage:
+
+```typescript
+import { SqliteSessionStore } from "harnessgate";
+
+bridge.setSessionStore(new SqliteSessionStore("./harnessgate.db"));
 ```
 
-Environment variables are interpolated via `${VAR}` syntax.
+For custom stores (Supabase, Postgres, Redis), implement the `SessionStore` interface directly:
+
+```typescript
+bridge.setSessionStore({
+  async get(key) { /* query your DB */ },
+  async set(key, entry) { /* upsert */ },
+  async delete(key) { /* delete */ },
+  async touch(key) { /* update lastActiveAt */ },
+});
+```
+
+See [`examples/with-supabase/main.ts`](examples/with-supabase/main.ts) for a complete example with Supabase for both auth and session persistence.
+
+## Provider Setup
+
+HarnessGate supports three ways to connect an agent runtime:
+
+### 1. Claude Managed Agents
+
+```bash
+# .env
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+```typescript
+import { ClaudeProvider } from "harnessgate";
+
+const provider = new ClaudeProvider(process.env.ANTHROPIC_API_KEY!);
+```
+
+Connects to [Claude Managed Agents](https://docs.anthropic.com/en/docs/managed-agents/overview). Full support for streaming, tool confirmation, custom tools, extended thinking, and multi-agent threads.
+
+For Claude, `agentId` and `environmentId` come from your `UserResolver`, not static provider config:
+
+```typescript
+bridge.setUserResolver(async (sender) => ({
+  userId: sender.id,
+  agentId: "agent_01XXXX",
+  environmentId: "env_01XXXX",
+}));
+```
+
+### 2. HTTP — any server
+
+```bash
+# .env
+MY_TOKEN=...
+```
+
+```typescript
+import { HttpProvider } from "harnessgate";
+
+const provider = new HttpProvider({
+  baseUrl: "http://localhost:8080",
+  headers: { Authorization: `Bearer ${process.env.MY_TOKEN}` },
+});
+```
+
+Connects to **any** HTTP server that implements these endpoints:
+
+| Endpoint | Request | Response |
+|----------|---------|----------|
+| `POST /sessions` | `{ systemPrompt? }` | `{ id: "session-123" }` |
+| `POST /sessions/{id}/message` | `{ message: "hello", sessionId: "..." }` | `200 OK` |
+| `GET /sessions/{id}/stream` | SSE stream | `data: {"type": "message", "text": "..."}` |
+| `DELETE /sessions/{id}` | — | `200 OK` |
+
+Your server can be written in any language. SSE events can use either format:
+
+```
+# HarnessGate-native format (recommended)
+data: {"type": "message", "text": "Hello!"}
+data: {"type": "status", "status": "idle"}
+
+# Simple format (auto-detected)
+data: {"response": "Hello!"}
+data: {"text": "Hello!"}
+```
+
+Custom endpoint paths:
+
+```typescript
+const provider = new HttpProvider({
+  baseUrl: "http://localhost:8080",
+  endpoints: {
+    createSession: "POST /api/conversations",
+    sendMessage: "POST /api/conversations/{sessionId}/chat",
+    stream: "GET /api/conversations/{sessionId}/events",
+    destroySession: "DELETE /api/conversations/{sessionId}",
+  },
+});
+```
+
+### 3. Custom provider — npm package or local file
+
+```bash
+# .env
+MY_PROVIDER_API_KEY=...
+```
+
+```typescript
+// npm package
+import MyProvider from "@my-org/my-langgraph-provider";
+
+// or local file
+import MyProvider from "./my-provider.js";
+
+const provider = new MyProvider({ apiKey: process.env.MY_PROVIDER_API_KEY! });
+```
+
+The package/file must default-export a class implementing the `Provider` interface:
+
+```typescript
+import type { Provider } from "harnessgate";
+
+export default class MyProvider implements Provider {
+  readonly id = "my-provider";
+  readonly capabilities = {
+    interrupt: false,
+    toolConfirmation: false,
+    customTools: false,
+    thinking: false,
+  };
+
+  constructor(config: Record<string, unknown>) {
+    // config contains whatever you pass to `new MyProvider({ ... })`
+  }
+
+  async createSession(opts) { /* ... */ }
+  async sendMessage(sessionId, message) { /* ... */ }
+  async *stream(sessionId, signal) { /* ... */ }
+  async destroySession(sessionId) { /* ... */ }
+}
+```
+
+## User Auth
+
+HarnessGate supports per-user access control and agent routing via a `UserResolver`:
+
+```typescript
+bridge.setUserResolver(async (sender, platform, message) => {
+  const user = await db.findUser(platform, sender.id);
+  if (!user?.isActive) return null; // reject
+
+  return {
+    userId: user.id,
+    agentId: user.agentId,         // which agent template
+    environmentId: user.envId,     // which environment
+    metadata: { plan: user.plan }, // passed to provider session
+  };
+});
+```
+
+Return `null` to reject. When no resolver is set, all users are allowed with their platform ID as the user ID.
+
+Claude requires the resolver to return both `agentId` and `environmentId` for session creation.
+
+## Platform Configuration
+
+Pass per-platform config to the `Bridge` constructor under `platforms`, keyed by platform id. Each entry is forwarded to that adapter's `start()`. Add an adapter via `bridge.addPlatform(...)` for each platform you want to enable.
+
+```bash
+# .env
+TELEGRAM_BOT_TOKEN=...
+DISCORD_BOT_TOKEN=...
+SLACK_BOT_TOKEN=...
+SLACK_APP_TOKEN=...
+WHATSAPP_PHONE_NUMBER_ID=...
+WHATSAPP_ACCESS_TOKEN=...
+WHATSAPP_VERIFY_TOKEN=...
+TEAMS_APP_ID=...
+TEAMS_APP_PASSWORD=...
+```
+
+```typescript
+import {
+  Bridge,
+  TelegramAdapter,
+  DiscordAdapter,
+  SlackAdapter,
+  WhatsAppAdapter,
+  TeamsAdapter,
+  WebAdapter,
+} from "harnessgate";
+
+const bridge = new Bridge(provider, {
+  provider: { type: "claude" },
+  platforms: {
+    web: { port: 3000 },
+    telegram: { botToken: process.env.TELEGRAM_BOT_TOKEN! },
+    discord: { token: process.env.DISCORD_BOT_TOKEN! },
+    slack: {
+      botToken: process.env.SLACK_BOT_TOKEN!,
+      appToken: process.env.SLACK_APP_TOKEN!,
+    },
+    whatsapp: {
+      phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID!,
+      accessToken: process.env.WHATSAPP_ACCESS_TOKEN!,
+      verifyToken: process.env.WHATSAPP_VERIFY_TOKEN!,
+      port: 8080,
+    },
+    teams: {
+      appId: process.env.TEAMS_APP_ID!,
+      appPassword: process.env.TEAMS_APP_PASSWORD!,
+      port: 3978,
+    },
+  },
+});
+
+// Only adapters you addPlatform() are started — omit any you don't need.
+bridge.addPlatform(new WebAdapter());
+bridge.addPlatform(new TelegramAdapter());
+// bridge.addPlatform(new DiscordAdapter());
+// bridge.addPlatform(new SlackAdapter());
+// bridge.addPlatform(new WhatsAppAdapter());
+// bridge.addPlatform(new TeamsAdapter());
+
+await bridge.start();
+```
+
+Load `.env` via `node --env-file=.env dist/main.js` or any `dotenv`-style loader.
 
 ## Platform Setup Guides
 
