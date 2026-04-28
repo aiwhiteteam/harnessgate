@@ -9,9 +9,7 @@
     "dev": "tsc --watch"
   },
   "dependencies": {
-    "@harnessgate/core": "workspace:*",
-    "@harnessgate/provider-claude": "workspace:*",
-    "@harnessgate/platform-web": "workspace:*"
+    "harnessgate": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.7.0",

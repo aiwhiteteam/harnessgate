@@ -8,9 +8,9 @@
  *   ANTHROPIC_API_KEY — your Anthropic API key
  */
 
-import { Bridge } from "@harnessgate/core";
-import { ClaudeProvider } from "@harnessgate/provider-claude";
-import { TelegramAdapter } from "@harnessgate/platform-telegram";
+import { Bridge } from "harnessgate";
+import { ClaudeProvider } from "harnessgate/providers";
+import { TelegramAdapter } from "harnessgate/platforms";
 
 // --- In-memory app store (replace with your DB) ---
 
