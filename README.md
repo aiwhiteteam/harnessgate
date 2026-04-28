@@ -1,6 +1,3 @@
-<!-- TODO: Add logo/banner image -->
-<!-- <p align="center"><img src="docs/assets/banner.png" alt="HarnessGate" width="600" /></p> -->
-
 <h1 align="center">HarnessGate</h1>
 
 <p align="center">
@@ -9,13 +6,10 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License" /></a>
-  <a href="https://github.com/your-org/harnessgate/actions"><img src="https://img.shields.io/github/actions/workflow/status/your-org/harnessgate/ci.yml?branch=main&label=CI" alt="CI" /></a>
+  <a href="https://github.com/aiwhiteteam/harnessgate/actions"><img src="https://img.shields.io/github/actions/workflow/status/aiwhiteteam/harnessgate/ci.yml?branch=main&label=CI" alt="CI" /></a>
   <img src="https://img.shields.io/badge/node-%3E%3D22-brightgreen" alt="Node" />
   <img src="https://img.shields.io/badge/TypeScript-strict-blue" alt="TypeScript" />
 </p>
-
-<!-- TODO: Add demo GIF -->
-<!-- <p align="center"><img src="docs/assets/demo.gif" alt="Demo" width="700" /></p> -->
 
 ---
 
@@ -92,7 +86,7 @@ See [`examples/demo-web/`](examples/demo-web/) for a minimal starter or [`exampl
 ### Run an example from the repo
 
 ```bash
-git clone https://github.com/your-org/harnessgate.git
+git clone https://github.com/aiwhiteteam/harnessgate.git
 cd harnessgate
 pnpm install
 
