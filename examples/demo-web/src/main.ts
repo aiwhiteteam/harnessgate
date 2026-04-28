@@ -2,15 +2,15 @@
  * Example: Using HarnessGate as a library in your own Node.js app.
  *
  * Install:
- *   npm install @harnessgate/core @harnessgate/provider-claude @harnessgate/platform-web
+ *   npm install harnessgate
  *
  * Required env vars:
  *   ANTHROPIC_API_KEY   — your Anthropic API key
  */
 
-import { Bridge, type BridgeConfig } from "@harnessgate/core";
-import { ClaudeProvider } from "@harnessgate/provider-claude";
-import { WebAdapter } from "@harnessgate/platform-web";
+import { Bridge, type BridgeConfig } from "harnessgate";
+import { ClaudeProvider } from "harnessgate/providers";
+import { WebAdapter } from "harnessgate/platforms";
 
 // 1. Create provider
 const provider = new ClaudeProvider(process.env.ANTHROPIC_API_KEY!);

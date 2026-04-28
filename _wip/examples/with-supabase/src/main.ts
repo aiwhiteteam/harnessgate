@@ -2,7 +2,7 @@
  * Example: HarnessGate with Supabase for user auth and session persistence.
  *
  * Install:
- *   npm install @harnessgate/core @harnessgate/provider-claude @harnessgate/platform-web @supabase/supabase-js
+ *   npm install harnessgate @supabase/supabase-js
  *
  * Required env vars:
  *   ANTHROPIC_API_KEY      — your Anthropic API key
@@ -41,9 +41,9 @@
  *   create index idx_sessions_last_active on sessions(last_active_at);
  */
 
-import { Bridge, type SessionStore, type SessionEntry, type BridgeConfig } from "@harnessgate/core";
-import { ClaudeProvider } from "@harnessgate/provider-claude";
-import { WebAdapter } from "@harnessgate/platform-web";
+import { Bridge, type SessionStore, type BridgeConfig } from "harnessgate";
+import { ClaudeProvider } from "harnessgate/providers";
+import { WebAdapter } from "harnessgate/platforms";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
