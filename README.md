@@ -87,7 +87,7 @@ bridge.addPlatform(new TelegramAdapter());
 await bridge.start();
 ```
 
-See [`examples/demo-web/`](examples/demo-web/) for a minimal starter, [`examples/demo-telegram/`](examples/demo-telegram/) for a Telegram bot, or [`examples/with-supabase/`](examples/with-supabase/) for a production starter with Supabase auth and session persistence.
+See [`examples/demo-web/`](examples/demo-web/) for a minimal starter or [`examples/demo-telegram/`](examples/demo-telegram/) for a Telegram bot.
 
 ### Run an example from the repo
 
