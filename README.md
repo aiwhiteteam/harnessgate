@@ -4,7 +4,7 @@
 <h1 align="center">HarnessGate</h1>
 
 <p align="center">
-  <strong>Connect any AI agent runtime to any messaging platform.</strong>
+  <strong>Connect any messaging platform to Claude Managed Agents.</strong>
 </p>
 
 <p align="center">
