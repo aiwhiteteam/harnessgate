@@ -21,9 +21,9 @@
 
 ## Why HarnessGate?
 
-Existing chatbot frameworks (AstrBot, LangBot, Botpress) run their **own agent loop** — they call LLM APIs, parse tool calls, execute tools locally, and manage context. When you connect them to a managed agent runtime like Claude Managed Agents, they have to **bypass their entire infrastructure** just to pipe messages through.
+Standard agent runtimes like the Anthropic ecosystem, E2B, and the OpenAI Agents SDK give you a secure, production-grade harness out of the box. Existing chatbot frameworks (OpenClaw, Botpress) ship their **own agent loop** instead — so to plug into one of these runtimes, you end up **bypassing the framework entirely** just to pipe messages through.
 
-HarnessGate takes a different approach: **no local agent loop.** It's a pure bridge that delegates all intelligence to the provider runtime. The gateway just routes messages between platforms and the agent.
+HarnessGate takes a different approach: **no local agent loop.** It's a pure bridge that connects social media platforms to a provider runtime such as Claude Managed Agents or E2B. The gateway just routes messages between platforms and the agent.
 
 This means:
 - Claude Managed Agents features work out of the box (tool confirmation, custom tools, multi-agent threads, extended thinking)
