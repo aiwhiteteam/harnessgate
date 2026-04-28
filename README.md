@@ -19,7 +19,7 @@
 
 ---
 
-## Why HarnessGate for Claude Managed Agents
+## Why HarnessGate and Claude Managed Agents?
 
 Standard agent runtimes like the Anthropic ecosystem, E2B, and the OpenAI Agents SDK give you a secure, production-grade harness out of the box. Existing chatbot frameworks (OpenClaw, Botpress) ship their **own agent loop** instead — so to plug into one of these runtimes, you end up **bypassing the framework entirely** just to pipe messages through.
 
